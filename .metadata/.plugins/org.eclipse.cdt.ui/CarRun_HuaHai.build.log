@@ -3,6 +3,6 @@ Connected to device... [TRICORE] DAS JDS TriBoard TC2XX V2.0
 ::Loading HEX file .......... (Pass)
 ::Erasing Flash memory .......... (Pass)
 ::Programming Flash memory .......... (Pass)
-Overall time: 1402 ms
+Overall time: 6246 ms
 AurixFlasher Exit Status: Pass
 Flashing was successfull
