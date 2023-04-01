@@ -284,19 +284,19 @@ void uart2_rx_interrupt_handler (void)
                 if(USB_ADDR_CONTROL  == usbStr.receiveBuffFinished[1])
                 {
                     //定义联合体来进行数据处理
-                    Byte2_Union byte2_union;
-                    Byte4_Union byte4_union;
+                    Byte2_Union byte_2_union;
+                    Byte4_Union byte_4_union;
                     //将速度数据赋值给联合体
                     for(int i=0; i<4; i++)
-                        byte4_union.U8_Buff[i] = usbStr.receiveBuffFinished[3+i];
+                        byte_4_union.U8_Buff[i] = usbStr.receiveBuffFinished[3+i];
                     //将方向数据赋值给联合体
-                    byte2_union.U8_Buff[0] = usbStr.receiveBuffFinished[7];
-                    byte2_union.U8_Buff[1] = usbStr.receiveBuffFinished[8];
-                    //保障转向的实时性，一得到转向信息就开始转向
-                    SERVO_SetPwmValueCorrect(byte2_union.U16);
+                    byte_2_union.U8_Buff[0] = usbStr.receiveBuffFinished[7];
+                    byte_2_union.U8_Buff[1] = usbStr.receiveBuffFinished[8];
                     //将速度和方向信息进行存储
-                    icarStr.SpeedSet = byte4_union.Float;         //速度
-                    icarStr.ServoPwmSet = byte2_union.U16;        //方向
+                    icarStr.SpeedSet = byte_4_union.Float;         //速度
+                    icarStr.ServoPwmSet = byte_2_union.U16;        //方向
+                    //保障转向的实时性，一得到转向信息就开始转向
+                    SERVO_SetPwmValueCorrect(icarStr.ServoPwmSet);
                 }
                 //上位机连接通信成功
                 if(!usbStr.connected)
@@ -485,7 +485,7 @@ void USB_Edgeboard_Handle(void)
 //-----------------------[自检软件数据发送]-----------------------------
     if(usbStr.inspectorEnable && usbStr.connected && usbStr.counterSend > 150)//150ms
     {
-        USB_Edgeboard_ServoThreshold(1);        //发送舵机阈值
+        USB_Edgeboard_ServoThreshold(1);          //发送舵机阈值
         system_delay_ms(1);
         USB_Edgeboard_ServoThreshold(2);
         system_delay_ms(1);

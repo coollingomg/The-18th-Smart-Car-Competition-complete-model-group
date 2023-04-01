@@ -10,6 +10,10 @@
 #include "icm20602_data_handle.h"
 #include "motor/motor.h"
 #include "servo/servo.h"
+#include "timer/timer.h"
+#include "key/key.h"
+#include "my_flash/my_flash.h"
+#include "car_control/car_control.h"
 #include "pid.h"
 #include "uart.h"
 
@@ -23,20 +27,36 @@ int core0_main(void)
 //----------------------------------此处编写用户代码 例如外设初始化代码等----------------------------------
     //陀螺仪任务初始化
     icm20602_pose_init();
-    //串口蓝牙初始化
+    //加载flash区的存储数据
+    my_flash_init();
+
+//选择通信初始化
+#if USING_BLUETOOTH_OR_EGBOARD
+    //使用蓝牙通信
     my_uart_init(bluetooth_using_uart, bluetooth_using_uart_baud, uart_booluteeth_pin_tx, uart_booluteeth_pin_rx);
+#else
+    //获取pid参数
+    float pid_data[3] = {icarStr.data_Kp, icarStr.data_Ki, icarStr.data_Kd};
+    //pid初始化
+    PID_Init(&car_speed_pid, PID_POSITION, pid_data, CAR_MAX_SPEED,CAR_IMAX_OUT);
+    //与eb通信初始化
+    my_uart_init(eb_using_uart, eb_using_uart_baud, uart_eb_pin_tx, uart_eb_pin_rx);
+    //等待数据接收完成
+    while(!usbStr.receiveFinished);
+    //点灯，说明数据接收完成
+    gpio_init(P20_9, GPO, 0, GPO_PUSH_PULL);
+#endif
+
     //电机初始化
     motor_init();
     //舵机初始化
     servo_init();
-    //等待数据接收完成
-    while(!Bluetooth_data.receiveFinished);
-    //点灯，说明数据接收完成
-    gpio_init(P20_9, GPO, 0, GPO_PUSH_PULL);
-    //获取pid参数
-    float pid_data[3] = {Bluetooth_data.data_Kp, Bluetooth_data.data_Ki, Bluetooth_data.data_Kd};
-    //pid初始化
-    PID_Init(&car_speed_pid, PID_POSITION, pid_data, CAR_MAX_SPEED,CAR_IMAX_OUT);
+    //线程初始化
+    timer_Init();
+    //智能车控制参数初始化
+    ICAR_Init();
+    //按键初始化
+    my_key_init();
 //----------------------------------此处编写用户代码 例如外设初始化代码等----------------------------------
 
     cpu_wait_event_ready();         // 等待所有核心初始化完毕
@@ -44,12 +64,17 @@ int core0_main(void)
     {
 
 //----------------------------------此处编写需要循环执行的代码----------------------------------
-        //开始闪灯，说明全部初始化完成
-        gpio_toggle_level(P20_8);
-        system_delay_ms(500);
-        //串口发送数据
-        //Bluetooth_Send("%f,%f,%f",Gyroscope_attitude_Angle_data_get.roll,Gyroscope_attitude_Angle_data_get.pitch,Gyroscope_attitude_Angle_data_get.yaw);
-        Bluetooth_Send("%f,%f",Bluetooth_data.data_angle, Bluetooth_data.data_speed);
+#if USING_BLUETOOTH_OR_EGBOARD
+        //蓝牙串口发送数据
+        Bluetooth_Send("%f,%f,%f",Bluetooth_data.data_angle, Bluetooth_data.data_speed, icarStr.SpeedFeedback);
+        //蓝牙数据处理
+        use_bluetooth_Handle();
+#else
+        //数据处理
+        USB_Edgeboard_Handle();
+        //flash任务处理
+        my_flash_Handle();
+#endif
 //----------------------------------此处编写需要循环执行的代码----------------------------------
 
     }

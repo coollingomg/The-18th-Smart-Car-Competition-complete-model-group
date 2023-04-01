@@ -7,7 +7,10 @@
 //包含头文件
 #include "uart.h"
 #include "isr_config.h"
+#include "pid/pid.h"
 #include "servo/servo.h"
+#include "motor/motor.h"
+#include "my_flash/my_flash.h"
 #include "car_control/car_control.h"
 
 //定义通信相关信息
@@ -42,6 +45,8 @@ void my_uart_init(uart_index_enum uartn, uint32 baud, uart_tx_pin_enum tx_pin, u
     Bluetooth_data.receiveStart = false;
     Bluetooth_data.receiveIndex = 0;
     Bluetooth_data.data_verity = 0;
+    Bluetooth_data.data_choice = false;         //默认闭环模式
+    Bluetooth_data.copyready = false;           //初始时数据未接收到
 #else
     //UsbStruct数据初始化
     usbStr.counter = 0;
@@ -175,35 +180,43 @@ void uart2_rx_interrupt_handler (void)
         //接收完数据帧，进行数据处理
         if(Bluetooth_data.receiveIndex >= UART_FRAME_LEN)
         {
+            //校验成功，数据正确，拷贝数据到receiveBuffFinished，并改变接收数据状态
+            memcpy(Bluetooth_data.receiveBuffFinished,Bluetooth_data.receiveBuff,UART_FRAME_LEN);
+            Bluetooth_data.copyready = true;
+
             //定义联合体来转换数据
             Byte4_Union byte_4_union;
+
+            //取出数据->开闭环选择
+            Bluetooth_data.data_choice = Bluetooth_data.receiveBuff[1];
+
             //获取数据
             for(int i=0; i<4; i++)
-                byte_4_union.U8_Buff[i] = Bluetooth_data.receiveBuff[1+i];
+                byte_4_union.U8_Buff[i] = Bluetooth_data.receiveBuff[2+i];
             //取出数据Kp
             Bluetooth_data.data_Kp = byte_4_union.Float;
 
             //获取数据
             for(int i=0; i<4; i++)
-                byte_4_union.U8_Buff[i] = Bluetooth_data.receiveBuff[5+i];
+                byte_4_union.U8_Buff[i] = Bluetooth_data.receiveBuff[6+i];
             //取出数据Ki
             Bluetooth_data.data_Ki = byte_4_union.Float;
 
             //获取数据
             for(int i=0; i<4; i++)
-                byte_4_union.U8_Buff[i] = Bluetooth_data.receiveBuff[9+i];
+                byte_4_union.U8_Buff[i] = Bluetooth_data.receiveBuff[10+i];
             //取出数据Kd
             Bluetooth_data.data_Kd = byte_4_union.Float;
 
             //获取数据
             for(int i=0; i<4; i++)
-                byte_4_union.U8_Buff[i] = Bluetooth_data.receiveBuff[13+i];
+                byte_4_union.U8_Buff[i] = Bluetooth_data.receiveBuff[14+i];
             //取出数据speed
             Bluetooth_data.data_angle = byte_4_union.Float;
 
             //获取数据
             for(int i=0; i<4; i++)
-                byte_4_union.U8_Buff[i] = Bluetooth_data.receiveBuff[17+i];
+                byte_4_union.U8_Buff[i] = Bluetooth_data.receiveBuff[18+i];
             //取出数据angle
             Bluetooth_data.data_speed = byte_4_union.Float;
 
@@ -271,19 +284,19 @@ void uart2_rx_interrupt_handler (void)
                 if(USB_ADDR_CONTROL  == usbStr.receiveBuffFinished[1])
                 {
                     //定义联合体来进行数据处理
-                    Byte2_Union byte2_union;
-                    Byte4_Union byte4_union;
+                    Byte2_Union byte_2_union;
+                    Byte4_Union byte_4_union;
                     //将速度数据赋值给联合体
                     for(int i=0; i<4; i++)
-                        byte4_union.U8_Buff[i] = usbStr.receiveBuffFinished[3+i];
+                        byte_4_union.U8_Buff[i] = usbStr.receiveBuffFinished[3+i];
                     //将方向数据赋值给联合体
-                    byte2_union.U8_Buff[0] = usbStr.receiveBuffFinished[7];
-                    byte2_union.U8_Buff[1] = usbStr.receiveBuffFinished[8];
-                    //保障转向的实时性，一得到转向信息就开始转向
-                    SERVO_SetPwmValueCorrect(byte2_union.U16);
+                    byte_2_union.U8_Buff[0] = usbStr.receiveBuffFinished[7];
+                    byte_2_union.U8_Buff[1] = usbStr.receiveBuffFinished[8];
                     //将速度和方向信息进行存储
-                    icarStr.SpeedSet = byte4_union.Float;         //速度
-                    icarStr.ServoPwmSet = byte2_union.U16;        //方向
+                    icarStr.SpeedSet = byte_4_union.Float;         //速度
+                    icarStr.ServoPwmSet = byte_2_union.U16;        //方向
+                    //保障转向的实时性，一得到转向信息就开始转向
+                    SERVO_SetPwmValueCorrect(icarStr.ServoPwmSet);
                 }
                 //上位机连接通信成功
                 if(!usbStr.connected)
@@ -336,9 +349,9 @@ void USB_Edgeboard_Timr(void)
         {
             //将连接状态改为掉线
             usbStr.connected = false;
-            //软件自检失败
+            //软件自检掉线
             usbStr.inspectorEnable = false;
-            //智能车自检失败
+            //智能车自检失能
             //icarStr.selfcheckEnable = false;
         }
         //如果使用软件进行自检，进行下列操作
@@ -397,8 +410,8 @@ void USB_Edgeboard_Handle(void)
                         byte2_union.U8_Buff[0] = usbStr.receiveBuffFinished[4];
                         byte2_union.U8_Buff[1] = usbStr.receiveBuffFinished[5];
                         servoStr.thresholdLeft = byte2_union.U16;
-                        //等待Flash存储
-                        //flashSaveEnable = true;
+                        //下达flash存储命令
+                        flashSaveEnable = true;
                         //蜂鸣器提示
                         //GPIO_BuzzerEnable(BuzzerDing);
                     }
@@ -408,8 +421,8 @@ void USB_Edgeboard_Handle(void)
                         byte2_union.U8_Buff[0] = usbStr.receiveBuffFinished[4];
                         byte2_union.U8_Buff[1] = usbStr.receiveBuffFinished[5];
                         servoStr.thresholdRight = byte2_union.U16;
-                        //等待Flash存储
-                        //flashSaveEnable = true;
+                        //下达flash存储命令
+                        flashSaveEnable = true;
                         //蜂鸣器提示
                         //GPIO_BuzzerEnable(BuzzerDing);
                     }
@@ -419,8 +432,8 @@ void USB_Edgeboard_Handle(void)
                         byte2_union.U8_Buff[0] = usbStr.receiveBuffFinished[4];
                         byte2_union.U8_Buff[1] = usbStr.receiveBuffFinished[5];
                         servoStr.thresholdMiddle = byte2_union.U16;
-                        //等待Flash存储
-                        //flashSaveEnable = true;
+                        //下达flash存储命令
+                        flashSaveEnable = true;
                         //蜂鸣器提示
                         //GPIO_BuzzerEnable(BuzzerDing);
                     }
@@ -464,7 +477,7 @@ void USB_Edgeboard_Handle(void)
                     usbStr.inspectorEnable = true;
                     break;
                 case USB_ADDR_SELFCHECK:                                   //开始自检
-                    ICAR_SelfcheckControl(usbStr.receiveBuffFinished[3]);
+                    //ICAR_SelfcheckControl(usbStr.receiveBuffFinished[3]);
                     break;
             }
         }
@@ -472,55 +485,109 @@ void USB_Edgeboard_Handle(void)
 //-----------------------[自检软件数据发送]-----------------------------
     if(usbStr.inspectorEnable && usbStr.connected && usbStr.counterSend > 150)//150ms
     {
-        USB_Edgeboard_ServoThreshold(1);        //发送舵机阈值
-        Delay_Ms(1);
+        USB_Edgeboard_ServoThreshold(1);           //发送舵机阈值
+        system_delay_ms(1);
         USB_Edgeboard_ServoThreshold(2);
-        Delay_Ms(1);
+        system_delay_ms(1);
         USB_Edgeboard_ServoThreshold(3);
-        Delay_Ms(1);
-        USB_Edgeboard_BatteryInfo();            //发送电池信息
-        Delay_Ms(1);
-        USB_Edgeboard_CarSpeed();               //发送车速
+        system_delay_ms(1);
+        //USB_Edgeboard_BatteryInfo();            //发送电池信息
+        //system_delay_ms(1);
+        //USB_Edgeboard_CarSpeed();               //发送车速
         usbStr.counterSend = 0;
     }
 }
 #endif
 
 
-
-/**
-* @brief        USB发送按键信号
-* @param        time: 按键时长
-* @ref
-* @author       Leo
-* @note
-**/
 //-------------------------------------------------------------------------------------------------------------------
-// 函数简介       USB发送按键信号
+// 函数简介       bluetooth通信处理函数
+// 参数说明       void
+// 返回参数       void
+//-------------------------------------------------------------------------------------------------------------------
+#if USING_BLUETOOTH_OR_EGBOARD
+void use_bluetooth_Handle(void)
+{
+    //定义判断是否为第一次进入处理接收信息
+    static bool is_first = true;
+    //定义联合体来处理信息
+    Byte4_Union byte4_union;
+
+    //如果数据接收成功
+    if(Bluetooth_data.copyready)
+    {
+        //取出数据->开闭环选择
+        Bluetooth_data.data_choice = Bluetooth_data.receiveBuff[1];
+
+        if(is_first)
+        {
+            //改变状态，不是第一次来处理数据了
+            is_first = false;
+
+            //获取数据
+            for(int i=0; i<4; i++)
+                byte4_union.U8_Buff[i] = Bluetooth_data.receiveBuff[2+i];
+            //取出数据Kp
+            Bluetooth_data.data_Kp = byte4_union.Float;
+
+            //获取数据
+            for(int i=0; i<4; i++)
+                byte4_union.U8_Buff[i] = Bluetooth_data.receiveBuff[6+i];
+            //取出数据Ki
+            Bluetooth_data.data_Ki = byte4_union.Float;
+
+            //获取数据
+            for(int i=0; i<4; i++)
+                byte4_union.U8_Buff[i] = Bluetooth_data.receiveBuff[10+i];
+            //取出数据Kd
+            Bluetooth_data.data_Kd = byte4_union.Float;
+
+            //等待数据接收完成，点灯，说明数据接收完成
+            gpio_init(P20_9, GPO, 0, GPO_PUSH_PULL);
+            //获取pid参数
+            float pid_data[3] = {Bluetooth_data.data_Kp, Bluetooth_data.data_Ki, Bluetooth_data.data_Kd};
+            //写入pid参数到flash中
+            my_flash_write_pid(pid_data);
+            //pid初始化
+            PID_Init(&car_speed_pid, PID_POSITION, pid_data, CAR_MAX_SPEED,CAR_IMAX_OUT);
+        }
+    }
+}
+#endif
+
+
+//-------------------------------------------------------------------------------------------------------------------
+// 函数简介       Edgeboard发送按键信号
 // 参数说明       time: 按键时长
 // 返回参数       void
 //-------------------------------------------------------------------------------------------------------------------
+#if !USING_BLUETOOTH_OR_EGBOARD
 void USB_Edgeboard_TransmitKey(uint16 time)
 {
-    uint8_t check = 0;
-    uint8_t buff[8];
-    Bint16_Union bint16_Union;
+    //整理发送的数据
+    uint8 check = 0;
+    uint8 buff[8];
+    Byte2_Union byte2_union;
 
-    buff[0] = 0x42; //帧头
-    buff[1] = USB_ADDR_KEYINPUT; //地址
-    buff[2] = 0x06; //帧长
+    //帧头
+    buff[0] = 0x42;
+    //地址
+    buff[1] = USB_ADDR_KEYINPUT;
+    //帧长
+    buff[2] = 0x06;
 
-    bint16_Union.U16 = time;
-    buff[3] = bint16_Union.U8_Buff[0];
-    buff[4] = bint16_Union.U8_Buff[1];
+    //转换按键时长，并写入数据
+    byte2_union.U16 = time;
+    buff[3] = byte2_union.U8_Buff[0];
+    buff[4] = byte2_union.U8_Buff[1];
 
+    //进行和校验
     for(int i=0;i<5;i++)
         check += buff[i];
-
+    //写入和校验数据
     buff[5] = check;
-
-    for(int i=0;i<8;i++)
-        USB_Edgeboard_TransmitByte(buff[i]);
+    //发送数据
+    uart_write_buffer(eb_using_uart, buff, 8);
 }
 
 
@@ -585,5 +652,5 @@ void USB_Edgeboard_ServoThreshold(uint8 chanel)
     //发送数据
     uart_write_buffer(eb_using_uart, buff, 9);
 }
-
+#endif
 
