@@ -1,0 +1,34 @@
+#ifndef CPU0_MAIN_H
+#define CPU0_MAIN_H
+
+
+/*----------------------------------Includes----------------------------------*/
+#include "Cpu/Std/Ifx_Types.h"
+#include "stdint.h"
+#include "zf_common_headfile.h"
+
+//重新定义类型
+typedef unsigned char bool_t;
+typedef float fp32;
+typedef double fp64;
+
+
+//app结构体
+typedef struct
+{
+    float32 sysFreq;                /**< \brief Actual SPB frequency */
+    float32 cpuFreq;                /**< \brief Actual CPU frequency */
+    float32 pllFreq;                /**< \brief Actual PLL frequency */
+    float32 stmFreq;                /**< \brief Actual STM frequency */
+} AppInfo;
+
+
+typedef struct
+{
+    AppInfo info;                               /**< \brief Info object */
+} App_Cpu0;
+
+
+IFX_EXTERN App_Cpu0 g_AppCpu0;
+
+#endif

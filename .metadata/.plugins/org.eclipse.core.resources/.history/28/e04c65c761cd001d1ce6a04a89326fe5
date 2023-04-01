@@ -1,0 +1,16 @@
+/*
+ * key.h
+ *
+ *  Created on: 2023年3月28日
+ *      Author: wzl
+ */
+#ifndef CODE_KEY_KEY_H_
+#define CODE_KEY_KEY_H_
+
+//包含头文件
+#include "cpu0_main.h"
+
+//宏定义要初始化地按键
+
+
+#endif /* CODE_KEY_KEY_H_ */

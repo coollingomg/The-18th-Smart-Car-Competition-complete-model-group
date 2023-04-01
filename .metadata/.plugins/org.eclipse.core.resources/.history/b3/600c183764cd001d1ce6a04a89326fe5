@@ -1,0 +1,49 @@
+/*
+ * key.c
+ *
+ *  Created on: 2023年3月28日
+ *      Author: wzl
+ */
+#include "key/key.h"
+
+
+//定义按键结构体
+GpioStruct gpioStr;
+
+//-------------------------------------------------------------------------------------------------------------------
+// 函数简介       按键初始化
+// 参数说明       void
+// 返回参数       void
+//-------------------------------------------------------------------------------------------------------------------
+void key_init(void)
+{
+    //初始化引脚
+    gpio_init(KEY_GPIO, GPI, GPIO_HIGH, GPI_PULL_UP);
+    //外部引脚中断初始化,p15_4,双边沿促发中断
+    exti_init(ERU_CH0_REQ0_P15_4, EXTI_TRIGGER_BOTH);
+}
+
+
+IFX_INTERRUPT(exti_ch0_ch4_isr, 0, EXTI_CH0_CH4_INT_PRIO)
+{
+    // 开启中断嵌套
+    interrupt_global_enable(0);
+    // 通道0中断
+    if(exti_flag_get(ERU_CH0_REQ0_P15_4))
+    {
+        exti_flag_clear(ERU_CH0_REQ0_P15_4);
+        wireless_module_uart_handler();                 // 无线模块统一回调函数
+
+
+
+    }
+
+    if(exti_flag_get(ERU_CH4_REQ13_P15_5))          // 通道4中断
+    {
+        exti_flag_clear(ERU_CH4_REQ13_P15_5);
+
+
+
+
+    }
+}

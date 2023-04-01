@@ -1,0 +1,54 @@
+/*
+ * my_flash.c
+ *
+ *  Created on: 2023年3月30日
+ *      Author: wzl
+ */
+#include "my_flash/my_flash.h"
+#include "car_control/car_control.h"
+#include "servo/servo.h"
+#include "uart/uart.h"
+
+
+//-------------------------------------------------------------------------------------------------------------------
+// 函数简介     读取Flash数据，初始化相关参数
+// 参数说明     void
+// 返回参数     void
+//-------------------------------------------------------------------------------------------------------------------
+void my_flash_init(void)
+{
+    //读取扇区0的一页数据到缓存区
+    flash_read_page_to_buffer(0, 0);
+
+#if USING_BLUETOOTH_OR_EGBOARD
+    //处理扇区读取的数据->舵机矫正的中值
+    servoStr.thresholdMiddle = flash_union_buffer[0].uint16_type;
+    //处理扇区读取的数据->舵机矫正的左转阈值
+    servoStr.thresholdMiddle = flash_union_buffer[1].uint16_type;
+    //处理扇区读取的数据->舵机矫正的右转阈值
+    servoStr.thresholdMiddle = flash_union_buffer[2].uint16_type;
+#else
+    //处理扇区读取的数据->舵机矫正的中值
+    servoStr.thresholdMiddle = flash_union_buffer[0].uint16_type;
+    //处理扇区读取的数据->舵机矫正的左转阈值
+    servoStr.thresholdMiddle = flash_union_buffer[1].uint16_type;
+    //处理扇区读取的数据->舵机矫正的右转阈值
+    servoStr.thresholdMiddle = flash_union_buffer[2].uint16_type;
+
+    //处理扇区读取的数据->底层运动速度控制pid参数->kp
+    icarStr.data_Kp = flash_union_buffer[3].float_type;
+    //处理扇区读取的数据->底层运动速度控制pid参数->ki
+    icarStr.data_Ki = flash_union_buffer[4].float_type;
+    //处理扇区读取的数据->底层运动速度控制pid参数->kd
+    icarStr.data_Kd = flash_union_buffer[5].float_type;
+#endif
+}
+
+
+//-------------------------------------------------------------------------------------------------------------------
+// 函数简介     存入Flash数据，初始化相关参数
+// 参数说明     void
+// 返回参数     void
+//-------------------------------------------------------------------------------------------------------------------
+
+

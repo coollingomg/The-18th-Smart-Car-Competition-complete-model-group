@@ -1,0 +1,49 @@
+/*
+ * car_control.c
+ *
+ *  Created on: 2023年3月27日
+ *      Author: wzl
+ */
+#include "car_control/car_control.h"
+#include "motor/motor.h"
+
+//定义小车控制参数到的结构体
+IcarStruct icarStr;
+
+
+//-------------------------------------------------------------------------------------------------------------------
+// 函数简介     智能车参数初始化
+// 参数说明     void
+// 返回参数     void
+//-------------------------------------------------------------------------------------------------------------------
+void ICAR_Init(void)
+{
+    icarStr.Electricity = 0;                         //电量信息
+    icarStr.Voltage = 0;                             //电压
+    icarStr.SpeedSet = 0.0f;                         //电机目标速度：m/s
+    icarStr.SpeedFeedback = 0.0f;                    //电机模型实测速度：m/s
+    icarStr.SpeedMaxRecords = 0.0f;
+    icarStr.ServoPwmSet = servoStr.thresholdMiddle;  //设置舵机初始化pwm
+}
+
+
+/**
+* @brief        智能车综合处理线程计数器
+* @param
+* @ref
+* @author       Leo
+* @note
+**/
+void ICAR_Timer(void)
+{
+    //按键
+    if(gpioStr.KeyPress)
+    {
+        icarStr.counterKeyA++;
+    }
+    else
+    {
+        if(icarStr.counterKeyA > 100)//100ms
+            icarStr.keyPressed = true;
+    }
+}

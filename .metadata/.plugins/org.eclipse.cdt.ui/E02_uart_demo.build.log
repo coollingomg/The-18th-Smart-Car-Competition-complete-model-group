@@ -1,0 +1,13 @@
+20:30:56 **** Incremental Build of configuration Debug for project E02_uart_demo ****
+make --output-sync -j8 all 
+TASKING VX-toolset for AURIX Development Studio (non-commercial): ELF size v1.1r8 Build 22011964
+正在调用： Print Size
+elfsize  "E02_uart_demo.elf"
+Total sizes:
+ROM: 0x6726 (26406) = code: 0x5fd2 (24530) + romdata: 0x754 (1876)
+RAM: 0x6930 (26928) = data + bss
+已结束构建： E02_uart_demo.siz
+ 
+
+20:30:59 Build Finished. 0 errors, 0 warnings. (took 3s.706ms)
+

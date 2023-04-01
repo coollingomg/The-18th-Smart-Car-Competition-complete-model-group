@@ -1,0 +1,24 @@
+/*
+ * key.h
+ *
+ *  Created on: 2023年3月28日
+ *      Author: wzl
+ */
+#ifndef CODE_KEY_KEY_H_
+#define CODE_KEY_KEY_H_
+
+//包含头文件
+#include "cpu0_main.h"
+
+//宏定义要初始化地按键
+#define KEY_GPIO    484         //p15_4
+
+//定义按键结构体
+typedef struct
+{
+    bool KeyPress;                      //按键输入-B
+    //uint16_t CounterLed;                //LED闪烁计数器
+}GpioStruct;
+
+
+#endif /* CODE_KEY_KEY_H_ */

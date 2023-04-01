@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<list key="installedFeatures">
+		<item value="com.infineon.aurix.ads.profiler.feature:1.8.0"/>
+		<item value="com.infineon.aurix.buildsystem.feature:1.8.0"/>
+		<item value="com.tasking.ctc.debug:1.18.23.0"/>
+		<item value="com.tasking.dbg:1.9.25.0"/>
+		<item value="com.tasking.debug.darwin:1.16.14.0"/>
+		<item value="com.tasking.debug:1.24.24.0"/>
+		<item value="org.eclipse.cdt.autotools:10.4.1.202109142059"/>
+		<item value="org.eclipse.cdt.build.crossgcc:10.4.1.202109142059"/>
+		<item value="org.eclipse.cdt.cmake:10.4.1.202109142059"/>
+		<item value="org.eclipse.cdt.debug.gdbjtag:10.4.1.202109142059"/>
+		<item value="org.eclipse.cdt.examples.dsf:10.4.1.202109142059"/>
+		<item value="org.eclipse.cdt.gdb:10.4.1.202109142059"/>
+		<item value="org.eclipse.cdt.gnu.build:10.4.1.202109142059"/>
+		<item value="org.eclipse.cdt.gnu.debug:10.4.1.202109142059"/>
+		<item value="org.eclipse.cdt.gnu.dsf:10.4.1.202109142059"/>
+		<item value="org.eclipse.cdt.launch.serial.feature:10.4.1.202109142059"/>
+		<item value="org.eclipse.cdt.native:10.4.1.202109150103"/>
+		<item value="org.eclipse.cdt.platform:10.4.1.202109150103"/>
+		<item value="org.eclipse.cdt:10.4.1.202109150103"/>
+		<item value="org.eclipse.emf.common:2.23.0.v20210618-0700"/>
+		<item value="org.eclipse.emf.ecore:2.25.0.v20210816-0937"/>
+		<item value="org.eclipse.epp.mpc:1.8.3.v20200526-1554"/>
+		<item value="org.eclipse.help:2.3.700.v20210906-0500"/>
+		<item value="org.eclipse.launchbar:10.4.1.202109142059"/>
+		<item value="org.eclipse.mylyn.wikitext.editors_feature:3.0.38.202008172112"/>
+		<item value="org.eclipse.platform:4.21.0.v20210906-0842"/>
+		<item value="org.eclipse.rcp:4.21.0.v20210906-0842"/>
+		<item value="org.eclipse.tm.terminal.connector.ssh.feature:10.4.1.202109142059"/>
+		<item value="org.eclipse.tm.terminal.control.feature:10.4.1.202109142059"/>
+		<item value="org.eclipse.tm.terminal.feature:10.4.1.202109142059"/>
+		<item value="org.eclipse.tm.terminal.view.feature:10.4.1.202109142059"/>
+		<item value="org.eclipse.userstorage:1.2.0.v20191120-1614"/>
+	</list>
+	<section name="com.infineon.aurix.buildsystem.importexport.wizard.ui.ImportFromCodeExampleWizardPage">
+		<item key="SELECTED_REPOSITORY" value="100"/>
+	</section>
+	<section name="ExternalProjectImportWizard">
+		<item key="WizardProjectsImportPage.STORE_NESTED_PROJECTS" value="false"/>
+		<item key="WizardProjectsImportPage.STORE_COPY_PROJECT_ID" value="true"/>
+		<item key="WizardProjectsImportPage.STORE_ARCHIVE_SELECTED" value="false"/>
+		<item key="WizardProjectsImportPage.STORE_CLOSE_CREATED_PROJECTS_ID" value="false"/>
+		<item key="WizardProjectsImportPage.STORE_HIDE_CONFLICTING_PROJECTS_ID" value="false"/>
+		<list key="WizardProjectsImportPage.STORE_DIRECTORIES">
+			<item value="D:\学习资料\智能车完全模型\逐飞开源库\TC264_Library\Example\E02_uart_demo"/>
+			<item value="D:\学习资料\智能车完全模型\逐飞开源库\TC264_Library\Example\E13_dual_core_demo"/>
+			<item value="D:\学习资料\智能车完全模型\逐飞开源库\TC264_Library\Seekfree_TC264_Opensource_Library"/>
+		</list>
+		<list key="WizardProjectsImportPage.STORE_ARCHIVES">
+			<item value=""/>
+		</list>
+	</section>
+	<section name="NewWizardAction">
+		<item key="NewWizardSelectionPage.STORE_SELECTED_ID" value="org.eclipse.cdt.ui.wizards.NewCWizard2"/>
+		<list key="NewWizardSelectionPage.STORE_EXPANDED_CATEGORIES_ID">
+			<item value="org.eclipse.cdt.ui.newCWizards"/>
+		</list>
+	</section>
+</section>

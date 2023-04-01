@@ -1,0 +1,36 @@
+/*
+ * servo.h
+ *
+ *  Created on: 2023年3月24日
+ *      Author: 开心就好
+ */
+
+#ifndef CODE_SERVO_SERVO_H_
+#define CODE_SERVO_SERVO_H_
+
+//包含头文件
+#include "zf_driver_pwm.h"
+
+//宏定义舵机控制引脚
+#define servo_pwm_out_pin   13      //使用的ATOM0_CH1_P33_9
+
+//比例换算
+#define TO_PENCENT          (1.0f/1000.0f/20.0f*10000.0f)
+//宏定义左转向最大值
+#define LEFT_PWM_MAX        500
+//宏定义右转向最大值
+#define RIGHT_PWM_MAX       2500
+//宏定义中点位置
+#define medium_point        1500
+//宏定义物理限制下最大转动角度
+#define MAX_ANGLE           38.0f
+//宏定义角度换算pwm关系式
+#define translate_angle_to_pwm  (1000.0f / 90.0f)
+
+//====================================================SERVO 基础函数====================================================
+void servo_init                 (void);
+void servo_contral              (float angle);
+//====================================================SERVO 基础函数====================================================
+
+
+#endif /* CODE_SERVO_SERVO_H_ */
