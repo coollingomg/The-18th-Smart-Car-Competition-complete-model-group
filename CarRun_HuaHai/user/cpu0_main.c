@@ -41,8 +41,6 @@ int core0_main(void)
     PID_Init(&car_speed_pid, PID_POSITION, pid_data, CAR_MAX_SPEED,CAR_IMAX_OUT);
     //与eb通信初始化
     my_uart_init(eb_using_uart, eb_using_uart_baud, uart_eb_pin_tx, uart_eb_pin_rx);
-    //...
-    uart_write_byte(eb_using_uart, 0xa5);
     //等待数据接收完成
     while(!usbStr.receiveFinished);
     //点灯，说明数据接收完成

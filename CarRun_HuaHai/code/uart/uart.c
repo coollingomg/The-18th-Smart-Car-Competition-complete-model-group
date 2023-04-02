@@ -493,7 +493,7 @@ void USB_Edgeboard_Handle(void)
         system_delay_ms(1);
         //USB_Edgeboard_BatteryInfo();            //发送电池信息
         //system_delay_ms(1);
-        //USB_Edgeboard_CarSpeed();               //发送车速
+        USB_Edgeboard_CarSpeed();                 //发送车速
         usbStr.counterSend = 0;
     }
 }
@@ -651,6 +651,43 @@ void USB_Edgeboard_ServoThreshold(uint8 chanel)
     buff[6] = check;
     //发送数据
     uart_write_buffer(eb_using_uart, buff, 9);
+}
+
+
+//-------------------------------------------------------------------------------------------------------------------
+// 函数简介       发送小车速度
+// 参数说明       chanel: 1/左转阈值，2/右转阈值，3/中值
+// 返回参数       void
+//-------------------------------------------------------------------------------------------------------------------
+void USB_Edgeboard_CarSpeed(void)
+{
+    //整理发送的数据
+    Byte4_Union byte4_union;
+    uint8_t check = 0;
+    uint8_t buff[10];
+
+    //帧头
+    buff[0] = 0x42;
+    //地址
+    buff[1] = USB_ADDR_SPEEDBACK;
+    //帧长
+    buff[2] = 0x08;
+
+    //发送的速度信息转换
+    byte4_union.Float = icarStr.SpeedFeedback;
+    buff[3] = byte4_union.U8_Buff[0];
+    buff[4] = byte4_union.U8_Buff[1];
+    buff[5] = byte4_union.U8_Buff[2];
+    buff[6] = byte4_union.U8_Buff[3];
+
+    //校验和信息
+    for(int i=0;i<7;i++)
+        check += buff[i];
+    //写入和校验数据
+    buff[7] = check;
+    //发送数据
+    for(int i=0;i<10;i++)
+        uart_write_buffer(eb_using_uart, buff, 10);
 }
 #endif
 
