@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <workingSetManager>
 <workingSet editPageId="org.eclipse.ui.resourceWorkingSetPage" factoryID="org.eclipse.ui.internal.WorkingSetFactory" id="1678879302387_1" label="ActiveProject" name="ActiveProject">
-<item factoryID="org.eclipse.ui.internal.model.ResourceFactory" path="/CarRun_HuaHai" type="4"/>
+<item factoryID="org.eclipse.ui.internal.model.ResourceFactory" path="/CarRun_HuaHai_Hardware" type="4"/>
 </workingSet>
 <workingSet editPageId="org.eclipse.jdt.internal.ui.DynamicSourcesWorkingSet" factoryID="org.eclipse.ui.internal.WorkingSetFactory" id="1678898770548_2" label="Java Main Sources" name="Java Main Sources"/>
 <workingSet editPageId="org.eclipse.jdt.internal.ui.DynamicSourcesWorkingSet" factoryID="org.eclipse.ui.internal.WorkingSetFactory" id="1678898770558_3" label="Java Test Sources" name="Java Test Sources"/>

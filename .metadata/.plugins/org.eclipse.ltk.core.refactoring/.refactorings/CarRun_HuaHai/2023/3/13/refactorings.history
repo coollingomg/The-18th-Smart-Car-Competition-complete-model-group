@@ -1,4 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<session version="1.0">
-<refactoring comment="将资源“CarRun_HuaHai/code/my_flash/my_flash”重命名为“my_flash.h”" description="重命名资源“my_flash”" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="code/my_flash/my_flash" name="my_flash.h" stamp="1680153676061" updateReferences="true"/>
-</session>
