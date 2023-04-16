@@ -1,4 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<session version="1.0">
-<refactoring comment="删除资源“CarRun_HuaHai/code/my_flash/my_flash.h”" deleteContents="false" description="删除资源“CarRun_HuaHai/code/my_flash/my_flash.h”" element1="/CarRun_HuaHai/code/my_flash/my_flash.h" flags="7" id="org.eclipse.ltk.core.refactoring.delete.resources" resources="1" stamp="1680153682563"/>
-</session>

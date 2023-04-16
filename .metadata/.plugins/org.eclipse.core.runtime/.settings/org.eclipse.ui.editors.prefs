@@ -1,7 +1,2 @@
-AbstractTextEditor.Color.Background=28,28,28
 AbstractTextEditor.Color.Background.SystemDefault=false
-AbstractTextEditor.Color.SelectionBackground.SystemDefault=false
-AbstractTextEditor.Color.SelectionForeground.SystemDefault=false
 eclipse.preferences.version=1
-predarkestdark.AbstractTextEditor.Color.Background.SystemDefault=false
-spellingIndication=false

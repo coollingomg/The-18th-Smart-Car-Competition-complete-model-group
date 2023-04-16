@@ -1,7 +1,0 @@
-#org-eclipse-ui-splash-progressText {
-  color: #FF8000;
-}
-
-#org-eclipse-ui-splash-progressPart {
-  background-image: url('me-custom:/platform:/plugin/com.infineon.aurix.buildsystem/splash.bmp');
-}
