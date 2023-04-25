@@ -19,15 +19,15 @@
     #define pwm_positive    51      //使用的ATOM1_CH0_P21_2
     #define pwm_nagetive    70      //使用的ATOM1_CH0_P21_4
 #else
-    #define pwm_rotation    51      //使用的ATOM1_CH0_P21_2
-    #define pwm_control     676     //使用的IO引脚控制方向
+    #define pwm_rotation    70      //使用的ATOM1_CH0_P21_4
+    #define pwm_control     674     //使用的IO引脚控制方向21_2
 #endif
 
 //编码器读入引脚宏定义
-#define encoder_pin_CH1   6         //20.3
-#define encoder_pin_CH2   7         //20.0
+#define encoder_pin_CH1   1         //33.7
+#define encoder_pin_CH2   1         //33.6
 //使用定时器宏定义
-#define USING_TIMER       4         //tim6
+#define USING_TIMER       0         //tim2
 
 //输出限制宏定义
 #define CAR_MAX_SPEED   9500        //避免满占空比，损坏mos管
