@@ -29,7 +29,7 @@
 
 
 //宏定义串口信息接收方式,1为使用蓝牙；0为使用上位机接收数据
-#define USING_BLUETOOTH_OR_EGBOARD     1
+#define USING_BLUETOOTH_OR_EGBOARD     0
 
 //定义通信相关信息
 #if USING_BLUETOOTH_OR_EGBOARD

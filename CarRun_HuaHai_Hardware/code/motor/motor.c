@@ -46,7 +46,7 @@ void motor_init(void)
     motorStr.ReductionRatio = 1.0f;                         //电机减速比
     motorStr.EncoderValue = 0;                              //初始化编码器实时速度
     motorStr.DiameterWheel = 0.062f;                        //轮子直径62cm，该参数单位为m
-    motorStr.CloseLoop = 1;                                 //默认闭环模式
+    motorStr.CloseLoop = 0;                                 //默认闭环模式|闭环模式
 }
 
 //-------------------------------------------------------------------------------------------------------------------

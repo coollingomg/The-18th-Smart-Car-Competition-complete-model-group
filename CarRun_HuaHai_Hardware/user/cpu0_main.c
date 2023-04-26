@@ -31,6 +31,8 @@ int core0_main(void)
     my_flash_init();
     //先初始化舵机，解决在中断中控制舵机卡死的bug
     servo_init();
+    //电机初始化
+    motor_init();
 
 //选择通信初始化
 #if USING_BLUETOOTH_OR_EGBOARD
@@ -49,8 +51,6 @@ int core0_main(void)
     gpio_init(P20_9, GPO, 0, GPO_PUSH_PULL);
 #endif
 
-    //电机初始化
-    motor_init();
     //线程初始化
     timer_Init();
     //智能车控制参数初始化
