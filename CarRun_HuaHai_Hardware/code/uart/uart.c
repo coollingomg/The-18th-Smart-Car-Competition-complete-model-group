@@ -656,7 +656,7 @@ void USB_Edgeboard_ServoThreshold(uint8 chanel)
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介       发送小车速度
-// 参数说明       chanel: 1/左转阈值，2/右转阈值，3/中值
+// 参数说明       void
 // 返回参数       void
 //-------------------------------------------------------------------------------------------------------------------
 void USB_Edgeboard_CarSpeed(void)
@@ -686,8 +686,8 @@ void USB_Edgeboard_CarSpeed(void)
     //写入和校验数据
     buff[7] = check;
     //发送数据
-    for(int i=0;i<10;i++)
-        uart_write_buffer(eb_using_uart, buff, 10);
+    //for(int i=0;i<10;i++)
+    uart_write_buffer(eb_using_uart, buff, 10);
 }
 #endif
 

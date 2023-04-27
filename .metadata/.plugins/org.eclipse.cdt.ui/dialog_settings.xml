@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <section name="Workbench">
+	<item key="LastUsedHeaderTemplate" value="默认的 C++ 头文件模板"/>
+	<item key="LastUsedSourceTemplate" value="默认的 C++ 源文件模板"/>
 	<section name="completion_proposal_size">
 	</section>
 	<section name="org.eclipse.cdt.ui.text.hover.CMacroExpansionExploration">

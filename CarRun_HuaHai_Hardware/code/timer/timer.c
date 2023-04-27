@@ -36,7 +36,6 @@ void timer_interrupt(void)
     motor_ControlLoop();
 #endif
 
-
     //ebÍ¨Ñ¶µôÏß¼ì²â
     #if !USING_BLUETOOTH_OR_EGBOARD
         USB_Edgeboard_Timr();

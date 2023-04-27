@@ -8,7 +8,7 @@
 #include "zf_common_headfile.h"
 
 //重新定义类型
-typedef unsigned char bool_t;
+typedef unsigned char  bool_t;
 typedef float fp32;
 typedef double fp64;
 

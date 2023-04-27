@@ -46,7 +46,7 @@ void motor_init(void)
     motorStr.ReductionRatio = 1.0f;                         //电机减速比
     motorStr.EncoderValue = 0;                              //初始化编码器实时速度
     motorStr.DiameterWheel = 0.062f;                        //轮子直径62cm，该参数单位为m
-    motorStr.CloseLoop = 0;                                 //默认闭环模式|闭环模式
+    motorStr.CloseLoop = 0;                                 //默认闭环模式|开环模式
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -147,7 +147,7 @@ void motor_ControlLoop(void)
     if(motorStr.Counter >= 10)
     {
         //获取当前编码器的值
-        motorStr.EncoderValue = encoder_get_count(USING_TIMER);
+        motorStr.EncoderValue = -encoder_get_count(USING_TIMER);
         //清空定时器的值
         encoder_clear_count(USING_TIMER);
         //获取实际速度；计算公式：定时器计数值/4倍频/编码器线数/电机的减速比/循环时间*pi*车轮直径
@@ -176,7 +176,7 @@ void motor_ControlLoop(void)
                 else if(icarStr.SpeedSet < -100)
                     icarStr.SpeedSet = -100;
                 //开环：百分比%
-                speed_to_pwm = CAR_MAX_SPEED / 100.0f * icarStr.SpeedSet;
+                speed_to_pwm = (int16)(CAR_MAX_SPEED / 100.0f * icarStr.SpeedSet);
                 //赋值pwm
                 motor_SetPwmValue(speed_to_pwm);
             }

@@ -255,7 +255,6 @@ void uart_write_byte (uart_index_enum uart_n, const uint8 dat)
 // 参数说明       len             发送长度
 // 返回参数       void
 // 使用示例       uart_write_buffer(UART_1, &a[0], 5);
-// 备注信息
 //-------------------------------------------------------------------------------------------------------------------
 void uart_write_buffer (uart_index_enum uart_n, const uint8 *buff, uint32 len)
 {
@@ -274,7 +273,6 @@ void uart_write_buffer (uart_index_enum uart_n, const uint8 *buff, uint32 len)
 // 参数说明       *str            要发送的字符串地址
 // 返回参数       void
 // 使用示例       uart_write_string(UART_1, "seekfree");
-// 备注信息
 //-------------------------------------------------------------------------------------------------------------------
 void uart_write_string (uart_index_enum uart_n, const char *str)
 {

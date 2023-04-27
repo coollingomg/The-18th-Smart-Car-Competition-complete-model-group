@@ -13,6 +13,7 @@
 #include "timer/timer.h"
 #include "key/key.h"
 #include "my_flash/my_flash.h"
+#include "Buzzer/buzzer.h"
 #include "car_control/car_control.h"
 #include "pid.h"
 #include "uart.h"
@@ -33,6 +34,8 @@ int core0_main(void)
     servo_init();
     //电机初始化
     motor_init();
+    //蜂鸣器初始化
+    Buzzer_Init();
 
 //选择通信初始化
 #if USING_BLUETOOTH_OR_EGBOARD
