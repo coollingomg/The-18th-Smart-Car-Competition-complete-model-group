@@ -60,6 +60,8 @@ int core0_main(void)
     ICAR_Init();
     //按键初始化
     my_key_init();
+    //初始化完成，蜂鸣器提示音
+    Buzzer_Enable(BuzzerSysStart);
 //----------------------------------此处编写用户代码 例如外设初始化代码等----------------------------------
 
     cpu_wait_event_ready();         // 等待所有核心初始化完毕

@@ -12,6 +12,7 @@
 #include "motor/motor.h"
 #include "my_flash/my_flash.h"
 #include "car_control/car_control.h"
+#include "Buzzer/buzzer.h"
 
 //定义通信相关信息
 #if USING_BLUETOOTH_OR_EGBOARD
@@ -440,16 +441,16 @@ void USB_Edgeboard_Handle(void)
                     break;
                 //蜂鸣器音效
                 case USB_ADDR_BUZZER:
-//                    if(usbStr.receiveBuffFinished[3] == 1)          //OK
-//                        GPIO_BuzzerEnable(BuzzerOk);
-//                    else if(usbStr.receiveBuffFinished[3] == 2)     //Warnning
-//                        GPIO_BuzzerEnable(BuzzerWarnning);
-//                    else if(usbStr.receiveBuffFinished[3] == 3)     //Finish
-//                        GPIO_BuzzerEnable(BuzzerFinish);
-//                    else if(usbStr.receiveBuffFinished[3] == 4)     //Ding
-//                        GPIO_BuzzerEnable(BuzzerDing);
-//                    else if(usbStr.receiveBuffFinished[3] == 5)     //SystemStart
-//                        GPIO_BuzzerEnable(BuzzerSysStart);
+                    if(usbStr.receiveBuffFinished[3] == 1)          //OK
+                        Buzzer_Enable(BuzzerOk);
+                    else if(usbStr.receiveBuffFinished[3] == 2)     //Warnning
+                        Buzzer_Enable(BuzzerWarnning);
+                    else if(usbStr.receiveBuffFinished[3] == 3)     //Finish
+                        Buzzer_Enable(BuzzerFinish);
+                    else if(usbStr.receiveBuffFinished[3] == 4)     //Ding
+                        Buzzer_Enable(BuzzerDing);
+                    else if(usbStr.receiveBuffFinished[3] == 5)     //SystemStart
+                        Buzzer_Enable(BuzzerSysStart);
                     break;
                 //LED灯效
                 case USB_ADDR_LIGHT:
@@ -686,7 +687,6 @@ void USB_Edgeboard_CarSpeed(void)
     //写入和校验数据
     buff[7] = check;
     //发送数据
-    //for(int i=0;i<10;i++)
     uart_write_buffer(eb_using_uart, buff, 10);
 }
 #endif

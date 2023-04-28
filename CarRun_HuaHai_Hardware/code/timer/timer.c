@@ -9,6 +9,7 @@
 #include "isr_config.h"
 #include "car_control/car_control.h"
 #include "uart/uart.h"
+#include "Buzzer/buzzer.h"
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介       定时中断初始化
@@ -37,9 +38,12 @@ void timer_interrupt(void)
 #endif
 
     //eb通讯掉线检测
-    #if !USING_BLUETOOTH_OR_EGBOARD
-        USB_Edgeboard_Timr();
-    #endif
+#if !USING_BLUETOOTH_OR_EGBOARD
+    USB_Edgeboard_Timr();
+#endif
+
+    //蜂鸣器外设线程
+    Buzzer_Timer();
 
     //智能车综合处理线程计数器
     ICAR_Timer();

@@ -35,6 +35,7 @@ typedef enum
 
 //声明蜂鸣器相关函数
 void Buzzer_Init        (void);
+void Buzzer_Timer       (void);
 void Buzzer_Handle      (void);
 void Buzzer_Enable      (BuzzerEnum buzzer);
 
