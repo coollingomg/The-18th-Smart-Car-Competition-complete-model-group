@@ -6,6 +6,7 @@
  */
 #include "key/key.h"
 #include "isr_config.h"
+#include "Buzzer/buzzer.h"
 
 
 //定义按键结构体
@@ -38,7 +39,7 @@ void exti_interrupt(void)
         //改变按键的状态
         gpioStr.KeyPress = true;
         //蜂鸣器提示
-        //GPIO_BuzzerEnable(BuzzerDing);
+        Buzzer_Enable(BuzzerDing);
     }
     else
     {
