@@ -44,7 +44,6 @@ void timer_interrupt(void)
 
     //蜂鸣器外设线程
     Buzzer_Timer();
-
     //智能车综合处理线程计数器
     ICAR_Timer();
 }
