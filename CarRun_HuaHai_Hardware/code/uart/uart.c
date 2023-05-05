@@ -188,36 +188,15 @@ void uart2_rx_interrupt_handler (void)
             //定义联合体来转换数据
             Byte4_Union byte_4_union;
 
-            //取出数据->开闭环选择
-            Bluetooth_data.data_choice = Bluetooth_data.receiveBuff[1];
-
             //获取数据
             for(int i=0; i<4; i++)
-                byte_4_union.U8_Buff[i] = Bluetooth_data.receiveBuff[2+i];
-            //取出数据Kp
-            Bluetooth_data.data_Kp = byte_4_union.Float;
-
-            //获取数据
-            for(int i=0; i<4; i++)
-                byte_4_union.U8_Buff[i] = Bluetooth_data.receiveBuff[6+i];
-            //取出数据Ki
-            Bluetooth_data.data_Ki = byte_4_union.Float;
-
-            //获取数据
-            for(int i=0; i<4; i++)
-                byte_4_union.U8_Buff[i] = Bluetooth_data.receiveBuff[10+i];
-            //取出数据Kd
-            Bluetooth_data.data_Kd = byte_4_union.Float;
-
-            //获取数据
-            for(int i=0; i<4; i++)
-                byte_4_union.U8_Buff[i] = Bluetooth_data.receiveBuff[14+i];
+                byte_4_union.U8_Buff[i] = Bluetooth_data.receiveBuffFinished[14+i];
             //取出数据speed
             Bluetooth_data.data_angle = byte_4_union.Float;
 
             //获取数据
             for(int i=0; i<4; i++)
-                byte_4_union.U8_Buff[i] = Bluetooth_data.receiveBuff[18+i];
+                byte_4_union.U8_Buff[i] = Bluetooth_data.receiveBuffFinished[18+i];
             //取出数据angle
             Bluetooth_data.data_speed = byte_4_union.Float;
 
@@ -302,10 +281,8 @@ void uart2_rx_interrupt_handler (void)
                 //上位机连接通信成功
                 if(!usbStr.connected)
                 {
-                    //rgb示意连接成功
-                    //RGB_SetAllColor(RGB_COLOR_GREEN);
                     //蜂鸣器示意连接成功
-                    //GPIO_BuzzerEnable(BuzzerOk);
+                    Buzzer_Enable(BuzzerOk);
                     usbStr.connected = true;
                 }
                 //未掉线，掉线计数清零
@@ -326,7 +303,6 @@ IFX_INTERRUPT(uart2_rx_isr, 0, UART2_RX_INT_PRIO)
     interrupt_global_enable(0);
     //打开接收串口2
     IfxAsclin_Asc_isrReceive(&uart2_handle);
-
     // 串口接收处理
     uart2_rx_interrupt_handler();
 }
@@ -343,6 +319,9 @@ void USB_Edgeboard_Timr(void)
     //Edgeboard通信掉线检测
     if(usbStr.connected)
     {
+        //如果为连接状态，点灯，说明为连接
+        gpio_init(P20_9, GPO, 0, GPO_PUSH_PULL);
+        gpio_low(P20_9);
         //先前连接成功了，为连接状态。如果一直有通信，会在中断中不断清零掉线计数器
         usbStr.counterDrop++;
         //如果掉线计数器时长超过3s，说明没有了通信，判断为掉线，改变相关的状态
@@ -360,6 +339,11 @@ void USB_Edgeboard_Timr(void)
         {
             usbStr.counterSend++;
         }
+    }
+    else
+    {
+        //灭灯，说明连接断开
+        gpio_high(P20_9);
     }
 }
 #endif
@@ -414,7 +398,7 @@ void USB_Edgeboard_Handle(void)
                         //下达flash存储命令
                         flashSaveEnable = true;
                         //蜂鸣器提示
-                        //GPIO_BuzzerEnable(BuzzerDing);
+                        Buzzer_Enable(BuzzerDing);
                     }
                     else if(usbStr.receiveBuffFinished[3] == 2)
                     {
@@ -425,7 +409,7 @@ void USB_Edgeboard_Handle(void)
                         //下达flash存储命令
                         flashSaveEnable = true;
                         //蜂鸣器提示
-                        //GPIO_BuzzerEnable(BuzzerDing);
+                        Buzzer_Enable(BuzzerDing);
                     }
                     else if(usbStr.receiveBuffFinished[3] == 3)     //中值
                     {
@@ -436,8 +420,36 @@ void USB_Edgeboard_Handle(void)
                         //下达flash存储命令
                         flashSaveEnable = true;
                         //蜂鸣器提示
-                        //GPIO_BuzzerEnable(BuzzerDing);
+                        Buzzer_Enable(BuzzerDing);
                     }
+                    break;
+                //PID参数设置
+                case USB_ADDR_PID_INFORMATION:
+                    //kp参数值
+                    for(int i=0;i<4;i++)
+                        byte4_union.U8_Buff[i] = usbStr.receiveBuffFinished[3+i];
+                    icarStr.data_Kp = byte4_union.Float;
+                    //ki参数值
+                    for(int i=0;i<4;i++)
+                        byte4_union.U8_Buff[i] = usbStr.receiveBuffFinished[7+i];
+                    icarStr.data_Ki = byte4_union.Float;
+                    //kd参数值
+                    for(int i=0;i<4;i++)
+                        byte4_union.U8_Buff[i] = usbStr.receiveBuffFinished[11+i];
+                    icarStr.data_Kd = byte4_union.Float;
+                    //根据KP值判断是否开环还是闭环,0表示开环；非0表示闭环
+                    if(icarStr.data_Kp != 0) {
+                        //闭环模式
+                        motorStr.CloseLoop = true;
+                    }
+                    else {
+                        //开环模式
+                        motorStr.CloseLoop = false;
+                    }
+                    //写入flash
+                    flashPIDEnable = true;
+                    //蜂鸣器提示
+                    Buzzer_Enable(BuzzerOk);
                     break;
                 //蜂鸣器音效
                 case USB_ADDR_BUZZER:
@@ -471,7 +483,7 @@ void USB_Edgeboard_Handle(void)
                         motorStr.CloseLoop = true;
                     icarStr.SpeedSet = 0;
                     //蜂鸣器提示
-                    //GPIO_BuzzerEnable(BuzzerDing);
+                    Buzzer_Enable(BuzzerDing);
                     break;
 //-----------------------------[自检软件相关]-------------------------------------------
                 case USB_ADDR_INSPECTOR:                                   //自检软件心跳
@@ -518,7 +530,7 @@ void use_bluetooth_Handle(void)
     if(Bluetooth_data.copyready)
     {
         //取出数据->开闭环选择
-        Bluetooth_data.data_choice = Bluetooth_data.receiveBuff[1];
+        Bluetooth_data.data_choice = Bluetooth_data.receiveBuffFinished[1];
 
         if(is_first)
         {
@@ -527,19 +539,19 @@ void use_bluetooth_Handle(void)
 
             //获取数据
             for(int i=0; i<4; i++)
-                byte4_union.U8_Buff[i] = Bluetooth_data.receiveBuff[2+i];
+                byte4_union.U8_Buff[i] = Bluetooth_data.receiveBuffFinished[2+i];
             //取出数据Kp
             Bluetooth_data.data_Kp = byte4_union.Float;
 
             //获取数据
             for(int i=0; i<4; i++)
-                byte4_union.U8_Buff[i] = Bluetooth_data.receiveBuff[6+i];
+                byte4_union.U8_Buff[i] = Bluetooth_data.receiveBuffFinished[6+i];
             //取出数据Ki
             Bluetooth_data.data_Ki = byte4_union.Float;
 
             //获取数据
             for(int i=0; i<4; i++)
-                byte4_union.U8_Buff[i] = Bluetooth_data.receiveBuff[10+i];
+                byte4_union.U8_Buff[i] = Bluetooth_data.receiveBuffFinished[10+i];
             //取出数据Kd
             Bluetooth_data.data_Kd = byte4_union.Float;
 

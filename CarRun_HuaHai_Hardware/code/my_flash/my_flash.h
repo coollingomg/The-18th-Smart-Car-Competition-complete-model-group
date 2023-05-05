@@ -12,6 +12,8 @@
 
 //声明全局变量
 extern bool flashSaveEnable;
+extern bool flashPIDEnable;
+
 
 //====================================================MY_FLASH 基础函数====================================================
 void my_flash_init              (void);

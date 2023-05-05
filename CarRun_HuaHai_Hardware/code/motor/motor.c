@@ -46,7 +46,7 @@ void motor_init(void)
     motorStr.ReductionRatio = 1.0f;                         //电机减速比
     motorStr.EncoderValue = 0;                              //初始化编码器实时速度
     motorStr.DiameterWheel = 0.062f;                        //轮子直径62cm，该参数单位为m
-    motorStr.CloseLoop = 0;                                 //1:闭环模式 | 0:开环模式
+    motorStr.CloseLoop = 1;                                 //1:闭环模式 | 0:开环模式
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -68,7 +68,7 @@ void motor_SetPwmValue(int16 pwm)
         pwm_set_duty(pwm_positive, (uint32)pwm);
         pwm_set_duty(pwm_nagetive, 0);
 #else
-        gpio_set_level(pwm_control, 0);
+        gpio_set_level(pwm_control, 1);
         pwm_set_duty(pwm_rotation, (uint32)pwm);
 #endif
 
@@ -87,7 +87,7 @@ void motor_SetPwmValue(int16 pwm)
         pwm_set_duty(pwm_positive, 0);
         pwm_set_duty(pwm_nagetive, (uint32)pwm);
 #else
-        gpio_set_level(pwm_control, 1);
+        gpio_set_level(pwm_control, 0);
         pwm_set_duty(pwm_rotation, (uint32)pwm);
 #endif
     }

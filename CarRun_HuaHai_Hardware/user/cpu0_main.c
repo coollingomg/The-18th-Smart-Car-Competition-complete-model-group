@@ -42,10 +42,6 @@ int core0_main(void)
     //使用蓝牙通信
     my_uart_init(bluetooth_using_uart, bluetooth_using_uart_baud, uart_booluteeth_pin_tx, uart_booluteeth_pin_rx);
 #else
-    //获取pid参数
-    float pid_data[3] = {icarStr.data_Kp, icarStr.data_Ki, icarStr.data_Kd};
-    //pid初始化
-    PID_Init(&car_speed_pid, PID_POSITION, pid_data, CAR_MAX_SPEED,CAR_IMAX_OUT);
     //与eb通信初始化
     my_uart_init(eb_using_uart, eb_using_uart_baud, uart_eb_pin_tx, uart_eb_pin_rx);
 #endif
@@ -59,8 +55,6 @@ int core0_main(void)
     //初始化完成，蜂鸣器提示音
     Buzzer_Enable(BuzzerSysStart);
 
-    //设置一个局部变量，用来判断通信是否连接
-    bool_t if_connect = 0;
 //----------------------------------此处编写用户代码 例如外设初始化代码等----------------------------------
 
     cpu_wait_event_ready();         // 等待所有核心初始化完毕
@@ -78,15 +72,6 @@ int core0_main(void)
         USB_Edgeboard_Handle();
         //flash任务处理
         my_flash_Handle();
-
-        //判断通信是否连接
-        if(usbStr.receiveFinished && if_connect == 0)
-        {
-            //点灯，说明数据接收,通信正常
-            gpio_init(P20_9, GPO, 0, GPO_PUSH_PULL);
-            //将标志位置1，不用再进if语句了
-            if_connect = 1;
-        }
 #endif
         //蜂鸣器控制
         Buzzer_Handle();

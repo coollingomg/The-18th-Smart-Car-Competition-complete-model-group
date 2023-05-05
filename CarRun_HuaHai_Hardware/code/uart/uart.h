@@ -63,7 +63,7 @@
     extern BlueTooth_data_recevie_Struct Bluetooth_data;
 #else
     //通信序列字节最长长度
-    #define USB_FRAME_LENMAX            10
+    #define USB_FRAME_LENMAX            16
     //USB通信序列字节最短长度
     #define USB_FRAME_LENMIN            4
     //eb通信序列帧头
@@ -77,6 +77,7 @@
     #define USB_ADDR_LIGHT              0x05                //LED灯效
     #define USB_ADDR_KEYINPUT           0x06                //按键输入
     #define USB_ADDR_BATTERY            0x07                //电池信息
+    #define USB_ADDR_PID_INFORMATION    0x10                //下位机PID参数信息
     //仅限自检软件通信使用
     #define USB_ADDR_INSPECTOR          0x0A                //智能车自检软件连接心跳
     #define USB_ADDR_SELFCHECK          0x0B                //智能车自检开始

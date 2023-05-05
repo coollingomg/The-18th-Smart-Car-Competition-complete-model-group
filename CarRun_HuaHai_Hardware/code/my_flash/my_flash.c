@@ -8,10 +8,13 @@
 #include "car_control/car_control.h"
 #include "servo/servo.h"
 #include "uart/uart.h"
+#include "pid/pid.h"
+#include "motor/motor.h"
 
 
 //定义全局变量，来处理是否进行数据存储
 bool flashSaveEnable = false;
+bool flashPIDEnable = false;
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     读取Flash数据，初始化相关参数
@@ -100,6 +103,7 @@ static void my_flash_write_pwmValue(uint16* buf)
 //-------------------------------------------------------------------------------------------------------------------
 void my_flash_Handle(void)
 {
+    //舵机数据存储
     if(flashSaveEnable)
     {
         //获取pwmValue值
@@ -108,6 +112,19 @@ void my_flash_Handle(void)
         my_flash_write_pwmValue(pwmValue_buff);
         //写入完成，关闭写入状态
         flashSaveEnable = false;
+    }
+
+    //PID数据存储
+    if(flashPIDEnable)
+    {
+        //获取pwmValue值
+        float pidValue_buff[3] = {icarStr.data_Kp, icarStr.data_Ki, icarStr.data_Kd};
+        //写入数据PID数据
+        my_flash_write_pid(pidValue_buff);
+        //重新初始化PID参数
+        PID_Init(&car_speed_pid, PID_POSITION, pidValue_buff, CAR_MAX_SPEED,CAR_IMAX_OUT);
+        //写入完成，关闭写入状态
+        flashPIDEnable = false;
     }
 }
 
