@@ -28,7 +28,6 @@ void icm20602_pose_init(void)
     //点灯，说明初始化成功
     gpio_init(P20_8, GPO, 0, GPO_PUSH_PULL);
 
-
     //初始化获取数据结构体
     Gyroscope_g_and_a_data_get.a_x = 0;
     Gyroscope_g_and_a_data_get.a_y = 0;

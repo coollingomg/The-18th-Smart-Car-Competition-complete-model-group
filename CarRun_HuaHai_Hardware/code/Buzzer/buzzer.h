@@ -30,6 +30,7 @@ typedef enum
     BuzzerSysStart,                     //开机提示音
     BuzzerDing,                         //叮叮叮一下
     BuzzerFinish,                       //结束提示音
+    BuzzerVoltage,                      //电池没电报警
 }BuzzerEnum;
 
 

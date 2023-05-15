@@ -43,7 +43,7 @@ void Buzzer_Timer(void)
         //·äÃùÆ÷¼ÆÊı
         buzzerStr.Counter++;
         //
-        if(buzzerStr.Cut<buzzerStr.Counter)
+        if(buzzerStr.Cut < buzzerStr.Counter)
             buzzerStr.Counter = buzzerStr.Cut;
     }
 }
@@ -122,6 +122,12 @@ void Buzzer_Enable(BuzzerEnum buzzer)
             buzzerStr.Cut = 200;        //200ms
             buzzerStr.Enable = true;
             buzzerStr.Times = 6;
+            break;
+
+        case BuzzerVoltage:
+            buzzerStr.Cut = 50;        //50ms
+            buzzerStr.Enable = true;
+            buzzerStr.Times = 5;
             break;
     }
 

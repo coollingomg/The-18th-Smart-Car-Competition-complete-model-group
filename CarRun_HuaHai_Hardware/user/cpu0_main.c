@@ -7,6 +7,7 @@
 
 
 //包含头文件
+#include "Kalman/Kalman_Filter.h"
 #include "icm20602_data_handle.h"
 #include "motor/motor.h"
 #include "servo/servo.h"
@@ -26,14 +27,15 @@ int core0_main(void)
     debug_init();                   // 初始化默认调试串口
 
 //----------------------------------此处编写用户代码 例如外设初始化代码等----------------------------------
-    //陀螺仪任务初始化
-    //icm20602_pose_init();
+
     //加载flash区的存储数据
     my_flash_init();
     //先初始化舵机，解决在中断中控制舵机卡死的bug
     servo_init();
     //电机初始化
     motor_init();
+     //线程初始化
+    timer_Init();
     //蜂鸣器初始化
     Buzzer_Init();
 
@@ -46,12 +48,16 @@ int core0_main(void)
     my_uart_init(eb_using_uart, eb_using_uart_baud, uart_eb_pin_tx, uart_eb_pin_rx);
 #endif
 
-    //线程初始化
-    timer_Init();
+   //通信连接提示灯初始化
+    gpio_init(P20_9, GPO, 1, GPO_PUSH_PULL);
+    //初始化完成后，拉高电平唤醒电机驱动板
+    gpio_init(P21_3, GPO, 1, GPO_PUSH_PULL);
+    //初始化引脚，用于提示数据接受是否错误
+    gpio_init(P21_5, GPO, 1, GPO_PUSH_PULL);
+    //卡尔曼参数初始化
+    Kalman_Filter_Init(&kalman_struck);
     //智能车控制参数初始化
     ICAR_Init();
-    //按键初始化
-    my_key_init();
     //初始化完成，蜂鸣器提示音
     Buzzer_Enable(BuzzerSysStart);
 
@@ -77,6 +83,7 @@ int core0_main(void)
         Buzzer_Handle();
         //智能车控制
         ICAR_Handle();
+
 
 //----------------------------------此处编写需要循环执行的代码----------------------------------
 

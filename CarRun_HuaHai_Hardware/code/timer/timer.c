@@ -10,6 +10,8 @@
 #include "car_control/car_control.h"
 #include "uart/uart.h"
 #include "Buzzer/buzzer.h"
+#include "servo/servo.h"
+#include "voltage_sampling/voltage_sampling.h"
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介       定时中断初始化
@@ -46,6 +48,10 @@ void timer_interrupt(void)
     Buzzer_Timer();
     //智能车综合处理线程计数器
     ICAR_Timer();
+    //电压采样线程
+    adc_Timer();
+//    //舵机线程控制
+//    SERVO_Timer();
 }
 
 

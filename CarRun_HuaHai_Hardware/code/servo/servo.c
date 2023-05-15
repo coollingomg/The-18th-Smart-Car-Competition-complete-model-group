@@ -5,7 +5,8 @@
  *      Author: 开心就好
  */
 #include "servo/servo.h"
-
+#include "Kalman/Kalman_Filter.h"
+#include "car_control/car_control.h"
 
 //定义舵机运动矫正结构体参数
 ServoStruct servoStr;
@@ -22,6 +23,9 @@ void servo_init(void)
     pwm_init(servo_pwm_out_pin, 50, (uint32)(medium_point * TO_PENCENT));    //占空比在0~10000.
     //初始时，舵机在中点位置
     pwm_set_duty(servo_pwm_out_pin, (uint32)(medium_point * TO_PENCENT));
+    //初始化线程相关参数
+    servoStr.count = 0;
+    servoStr.count_handle = false;
 }
 
 
@@ -111,4 +115,49 @@ void SERVO_SetPwmValueCorrect(uint16 pwm)
 
     //输出pwm控制角度
     pwm_set_duty(servo_pwm_out_pin, (uint32)(pwm_Servo * TO_PENCENT));
+}
+
+
+//-------------------------------------------------------------------------------------------------------------------
+// 函数简介     舵机线程
+// 参数说明     void
+// 返回参数     void
+//-------------------------------------------------------------------------------------------------------------------
+void SERVO_Timer(void)
+{
+    //定义一个静态变量，用于线程计数器
+    static uint8_t count = 0;
+
+    //线程计数
+    count++;
+
+    //每3ms处理一次舵机控制
+    if(count >= 1)
+    {
+        //置标志位，处理控制舵机
+        servoStr.count_handle = true;
+        //计数器清零
+        count = 0;
+    }
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+// 函数简介     舵机线程处理函数
+// 参数说明     void
+// 返回参数     void
+//-------------------------------------------------------------------------------------------------------------------
+void SERVO_Handle(void)
+{
+    //每5ms处理一次舵机控制
+    if(servoStr.count_handle == true)
+    {
+        //卡尔曼滤波
+        Kalman_Filter_Fun(&kalman_struck ,(float)icarStr.ServoPwmSet);
+        //舵机控制
+        SERVO_SetPwmValueCorrect((uint16)kalman_struck.out);
+//        SERVO_SetPwmValueCorrect(icarStr.ServoPwmSet);
+
+        //清除标志位
+        servoStr.count_handle = false;
+    }
 }

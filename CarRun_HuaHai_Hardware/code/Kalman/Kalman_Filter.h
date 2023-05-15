@@ -12,7 +12,10 @@ typedef struct
     float R;        //观测噪声协方差 初始化值为0.543
 }KalmanInfo;        //Kalman Filter parameter
 
-void Kalman_Filter_Init(KalmanInfo *KalmanInfo_Structure);
+//声明卡尔曼结构体参数
+extern KalmanInfo kalman_struck;
+
+void  Kalman_Filter_Init(KalmanInfo *KalmanInfo_Structure);
 float Kalman_Filter_Fun(KalmanInfo *info, float new_value);
 
 #endif

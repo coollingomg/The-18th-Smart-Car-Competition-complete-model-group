@@ -1,6 +1,9 @@
 #include "Kalman_Filter.h"
 
 
+//定义卡尔曼结构体参数
+KalmanInfo kalman_struck;
+
 //初始化卡尔曼滤波结构体
 void Kalman_Filter_Init(KalmanInfo *KalmanInfo_Structure)
 {
@@ -22,7 +25,7 @@ void Kalman_Filter_Init(KalmanInfo *KalmanInfo_Structure)
 //-------------------------------------------------------------------------------------------------------------------
 float Kalman_Filter_Fun(KalmanInfo *info, float new_value)
 {
-    //预测协方差方程：k时刻系统估算协方差 = k-1时刻的系统协方差 + 过程噪声协方差
+    //先验协方差方程：k时刻系统估算协方差 = k-1时刻的系统协方差 + 过程噪声协方差
     info->Now_P = info->LastP + info->Q;
     //卡尔曼增益方程：卡尔曼增益 = k时刻系统估算协方差 / （k时刻系统估算协方差 + 观测噪声协方差）
     info->Kg = info->Now_P / (info->Now_P + info->R);

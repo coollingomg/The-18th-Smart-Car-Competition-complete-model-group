@@ -23,6 +23,7 @@
     UsbStruct usbStr;
 #endif
 
+
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     串口初始化
 // 参数说明     uartn           串口模块号(UART_0,UART_1,UART_2,UART_3)
@@ -199,7 +200,8 @@ void uart2_rx_interrupt_handler (void)
                 byte_4_union.U8_Buff[i] = Bluetooth_data.receiveBuffFinished[18+i];
             //取出数据angle
             Bluetooth_data.data_speed = byte_4_union.Float;
-
+            //舵机实时控制
+            servo_contral(Bluetooth_data.data_angle);
             //接收状态清除
             Bluetooth_data.receiveStart = FALSE;
         }
@@ -260,8 +262,9 @@ void uart2_rx_interrupt_handler (void)
                 //校验成功，数据正确，拷贝数据到receiveBuffFinished，并改变接收数据状态
                 memcpy(usbStr.receiveBuffFinished,usbStr.receiveBuff,USB_FRAME_LENMAX);
                 usbStr.receiveFinished = true;
+
                 //智能车控制指令特殊处理（保障实时性），USB_ADDR_CONTROL->速度和方向指令
-                if(USB_ADDR_CONTROL  == usbStr.receiveBuffFinished[1])
+                if(usbStr.receiveBuffFinished[1]  == USB_ADDR_CONTROL)
                 {
                     //定义联合体来进行数据处理
                     Byte2_Union byte_2_union;
@@ -272,12 +275,13 @@ void uart2_rx_interrupt_handler (void)
                     //将方向数据赋值给联合体
                     byte_2_union.U8_Buff[0] = usbStr.receiveBuffFinished[7];
                     byte_2_union.U8_Buff[1] = usbStr.receiveBuffFinished[8];
+                    //保障转向的实时性，一得到转向信息就开始转向
+                    SERVO_SetPwmValueCorrect(byte_2_union.U16);
                     //将速度和方向信息进行存储
                     icarStr.SpeedSet = byte_4_union.Float;         //速度
                     icarStr.ServoPwmSet = byte_2_union.U16;        //方向
-                    //保障转向的实时性，一得到转向信息就开始转向
-                    SERVO_SetPwmValueCorrect(icarStr.ServoPwmSet);
                 }
+
                 //上位机连接通信成功
                 if(!usbStr.connected)
                 {
@@ -288,6 +292,12 @@ void uart2_rx_interrupt_handler (void)
                 //未掉线，掉线计数清零
                 usbStr.counterDrop = 0;
             }
+            else
+            {
+                //如果校验错误，翻转电平
+                gpio_toggle_level(P21_5);
+            }
+
             //清除接收控制信息，等待下一次信息的接收
             usbStr.receiveIndex = 0;
             usbStr.receiveStart = false;
@@ -301,7 +311,7 @@ IFX_INTERRUPT(uart2_rx_isr, 0, UART2_RX_INT_PRIO)
 {
     // 开启中断嵌套
     interrupt_global_enable(0);
-    //打开接收串口2
+    // 打开接收串口2
     IfxAsclin_Asc_isrReceive(&uart2_handle);
     // 串口接收处理
     uart2_rx_interrupt_handler();
@@ -320,7 +330,6 @@ void USB_Edgeboard_Timr(void)
     if(usbStr.connected)
     {
         //如果为连接状态，点灯，说明为连接
-        gpio_init(P20_9, GPO, 0, GPO_PUSH_PULL);
         gpio_low(P20_9);
         //先前连接成功了，为连接状态。如果一直有通信，会在中断中不断清零掉线计数器
         usbStr.counterDrop++;
@@ -344,6 +353,8 @@ void USB_Edgeboard_Timr(void)
     {
         //灭灯，说明连接断开
         gpio_high(P20_9);
+        //掉线之后清除pid的积累误差
+        PID_clear(&car_speed_pid);
     }
 }
 #endif
@@ -701,5 +712,44 @@ void USB_Edgeboard_CarSpeed(void)
     //发送数据
     uart_write_buffer(eb_using_uart, buff, 10);
 }
+
+
+
+//----------------------------------------------[向上位机发送通信内容]----------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+// 函数简介     向上位机发送数据
+// 参数说明     senddata  将要发送的所有数据写入
+// 返回参数     void
+//-------------------------------------------------------------------------------------------------------------------
+void senddata_to_upper(float senddata)
+{
+    //整理发送的数据
+    Byte4_Union byte4_union;
+    uint8_t check = 0;
+    uint8_t buff[10];
+
+    //帧头
+    buff[0] = 0x42;
+    //地址
+    buff[1] = 0xAA;
+    //帧长
+    buff[2] = 0x08;
+
+    //发送的速度信息转换
+    byte4_union.Float = senddata;
+    buff[3] = byte4_union.U8_Buff[0];
+    buff[4] = byte4_union.U8_Buff[1];
+    buff[5] = byte4_union.U8_Buff[2];
+    buff[6] = byte4_union.U8_Buff[3];
+
+    //校验和信息
+    for(int i=0;i<7;i++)
+        check += buff[i];
+    //写入和校验数据
+    buff[7] = check;
+    //发送数据
+    uart_write_buffer(eb_using_uart, buff, 10);
+}
+
 #endif
 

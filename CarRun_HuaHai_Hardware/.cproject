@@ -35,6 +35,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/code/servo}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/code/timer}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/code/uart}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/code/voltage_sampling}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/libraries}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/libraries/infineon_libraries}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/libraries/infineon_libraries/Configurations}&quot;"/>
@@ -530,6 +531,7 @@
 					<path>/Configurations</path>
 				</never-exclude-from-build>
 			</storageModule>
+			<storageModule moduleId="com.tasking.flash.settings"/>
 		</cconfiguration>
 		<cconfiguration id="com.infineon.aurix.buildsystem.managed.external.gcc.configuration.debug.56824320">
 			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="com.infineon.aurix.buildsystem.managed.external.gcc.configuration.debug.56824320" moduleId="org.eclipse.cdt.core.settings" name="External GCC - Debug">

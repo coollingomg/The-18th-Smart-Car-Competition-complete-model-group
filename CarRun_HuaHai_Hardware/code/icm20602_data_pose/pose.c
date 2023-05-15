@@ -302,5 +302,4 @@ void calculatePose_Module(Pose_Module *pose, float cycle)
 //			pose->data.mag_correct.y = sqrt(1 - (pose->data.mag_correct.z / length) * (pose->data.mag_correct.z / length)) * *(pose->interface.data.m_y);
 		}
 	}
-	
 }

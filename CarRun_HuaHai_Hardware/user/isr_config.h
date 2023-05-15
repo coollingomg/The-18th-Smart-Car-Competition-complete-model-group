@@ -67,9 +67,9 @@
 #define UART1_ER_INT_PRIO       15
 
 #define	UART2_INT_SERVICE       IfxSrc_Tos_cpu0
-#define UART2_TX_INT_PRIO       16
-#define UART2_RX_INT_PRIO       17
-#define UART2_ER_INT_PRIO       18
+#define UART2_TX_INT_PRIO       253
+#define UART2_RX_INT_PRIO       254
+#define UART2_ER_INT_PRIO       255
 
 #define	UART3_INT_SERVICE       IfxSrc_Tos_cpu0
 #define UART3_TX_INT_PRIO       19

@@ -9,6 +9,7 @@
 
 //包含头文件
 #include "zf_driver_pwm.h"
+#include "cpu0_main.h"
 
 //宏定义舵机控制引脚
 #define servo_pwm_out_pin   13      //使用的ATOM0_CH1_P33_9
@@ -32,6 +33,8 @@ typedef struct
     uint16_t thresholdMiddle;                   //舵机中值PWM
     uint16_t thresholdLeft;                     //舵机左向转角最大值PWM
     uint16_t thresholdRight;                    //舵机右向转角最大值PWM
+    uint8_t  count;                             //线程计数器
+    bool     count_handle;                      //线程处理标志位
 }ServoStruct;
 
 //声明舵机运动矫正结构体参数
@@ -41,6 +44,8 @@ extern ServoStruct servoStr;
 void servo_init                 (void);
 void servo_contral              (float angle);
 void SERVO_SetPwmValueCorrect   (uint16 pwm);
+void SERVO_Timer                (void);
+void SERVO_Handle               (void);
 //====================================================SERVO 基础函数====================================================
 
 #endif /* CODE_SERVO_SERVO_H_ */
