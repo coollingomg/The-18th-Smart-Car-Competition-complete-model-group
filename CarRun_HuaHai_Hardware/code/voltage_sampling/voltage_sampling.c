@@ -24,6 +24,7 @@ void adc_Init(void)
     //相关参数初始化
     adc_sampling.if_adc_handle = false;        //初始默认失能
     adc_sampling.adc_getNum = 0.0;             //初始采样值为0
+    adc_sampling.key_contral = true;           //默认初始允许采样
 }
 
 
@@ -55,7 +56,7 @@ void adc_Timer(void)
 //-------------------------------------------------------------------------------------------------------------------
 void adc_Handle(void)
 {
-    if(adc_sampling.if_adc_handle == true)
+    if(adc_sampling.if_adc_handle == true && adc_sampling.key_contral == true)
     {
         //定义变量来读取adc寄存器的值
         uint16 get_value = 0;
@@ -64,7 +65,7 @@ void adc_Handle(void)
         //将得到的值转换为电压值
         adc_sampling.adc_getNum = get_value / CONVERSION_FAC * MAX_VOLTAGE;
         //判断电压是否低于设置电压
-        if(adc_sampling.adc_getNum < VOLTAGE_VALUE)
+        if(adc_sampling.adc_getNum < VOLTAGE_VALUE && adc_sampling.adc_getNum >VOLTAGE_MIN)
         {
             Buzzer_Enable(BuzzerVoltage);
         }

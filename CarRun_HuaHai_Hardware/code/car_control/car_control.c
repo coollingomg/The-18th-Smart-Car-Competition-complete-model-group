@@ -4,6 +4,7 @@
  *  Created on: 2023年3月27日
  *      Author: wzl
  */
+#include "voltage_sampling/voltage_sampling.h"
 #include "car_control/car_control.h"
 #include "motor/motor.h"
 #include "servo/servo.h"
@@ -68,10 +69,18 @@ void ICAR_Handle(void)
             USB_Edgeboard_TransmitKey(icarStr.counterKeyA);
 #endif
 
-        //如果按键按下时长超过2秒，进行相关操作
-        if(icarStr.counterKeyA > 2000 && !icarStr.selfcheckEnable)
+        //如果按键按下时长超过3秒，进行相关操作
+        if(icarStr.counterKeyA > 3000 && !icarStr.selfcheckEnable)
         {
-            //暂时未定义
+            // 是否采用电量提醒设置
+            if(adc_sampling.key_contral == true)
+            {
+                adc_sampling.key_contral = false;
+            }
+            else
+            {
+                adc_sampling.key_contral = true;
+            }
         }
 
         //完成按键信息处理后，清除按键相关信息

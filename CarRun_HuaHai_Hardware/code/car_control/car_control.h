@@ -46,8 +46,6 @@ typedef struct
 
     uint16 counterKeyA;                       //按键模式A计数器
     bool   keyPressed;                        //按键按下
-    bool   sprintEnable;                      //闭环冲刺使能
-    uint16 counterSprint;                     //闭环冲刺时间
     uint16 errorCode;                         //错误代码
 
     bool   selfcheckEnable;                   //智能车自检使能

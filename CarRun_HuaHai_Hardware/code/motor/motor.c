@@ -8,6 +8,7 @@
 #include "motor/motor.h"
 #include "uart/uart.h"
 #include "pid.h"
+#include "Buzzer/buzzer.h"
 
 
 //定义电机运动结构体参数
@@ -141,10 +142,12 @@ void motor_ControlLoop(float set_speed)
 #else
 void motor_ControlLoop(void)
 {
+    //定义给定pwm值
+    static int16 speed_to_pwm = 0;
     //线程控制，每1ms进入一次该函数
     motorStr.Counter++;
     //每10ms对电机速度进行控制
-    if(motorStr.Counter >= 10)
+    if(motorStr.Counter >= 3)
     {
         //获取当前编码器的值
         motorStr.EncoderValue = encoder_get_count(USING_TIMER);
@@ -153,38 +156,38 @@ void motor_ControlLoop(void)
         //获取实际速度；计算公式：定时器计数值/4倍频/编码器线数/电机的减速比/循环时间*pi*车轮直径
         icarStr.SpeedFeedback = (float)(motorStr.EncoderValue * PI_MOTOR * motorStr.DiameterWheel)/ MOTOR_CONTROL_CYCLE / motorStr.EncoderLine / 4.0f / motorStr.ReductionRatio;
 
-        //通信连接或电机测试才开启闭环（保护+省电）
-        if(icarStr.sprintEnable || usbStr.connected)
+        //通信连接才开启闭环（保护+省电）
+        if(usbStr.connected)
         {
-            //定义给定pwm值
-            static int16 speed_to_pwm = 0;
-
-            //闭环速控
-            if(motorStr.CloseLoop)
-            {
-                //pid计算，并赋值给pwm
-                PID_Calc(&car_speed_pid, icarStr.SpeedFeedback, icarStr.SpeedSet);
-                speed_to_pwm = (int16)car_speed_pid.out;
-                //赋值pwm
-                motor_SetPwmValue(speed_to_pwm);
-            }
-            else
-            {
-                //开环百分比控制
-                if(icarStr.SpeedSet > 100)
-                    icarStr.SpeedSet = 100;
-                else if(icarStr.SpeedSet < -100)
-                    icarStr.SpeedSet = -100;
-                //开环：百分比%，输入速度信息为0-10，10为满转
-                speed_to_pwm = (int16)(CAR_MAX_SPEED / 100.0f * icarStr.SpeedSet * 10.0);
-                //赋值pwm
-                motor_SetPwmValue(speed_to_pwm);
-            }
+            //发送车速
+            senddata_to_upper(icarStr.SpeedFeedback);
         }
         else
         {
             //通讯没有连接，也没有电机测试，电机不转动
-            motor_SetPwmValue(0);
+            PID_Calc(&car_speed_pid, icarStr.SpeedFeedback, 0);
+        }
+
+        //闭环速控
+        if(motorStr.CloseLoop)
+        {
+            //pid计算，并赋值给pwm
+            PID_Calc(&car_speed_pid, icarStr.SpeedFeedback, icarStr.SpeedSet);
+            speed_to_pwm = (int16)car_speed_pid.out;
+            //赋值pwm
+            motor_SetPwmValue(speed_to_pwm);
+        }
+        else
+        {
+            //开环百分比控制
+            if(icarStr.SpeedSet > 100)
+                icarStr.SpeedSet = 100;
+            else if(icarStr.SpeedSet < -100)
+                icarStr.SpeedSet = -100;
+            //开环：百分比%，输入速度信息为0-10，10为满转
+            speed_to_pwm = (int16)(CAR_MAX_SPEED / 100.0f * icarStr.SpeedSet * 10.0);
+            //赋值pwm
+            motor_SetPwmValue(speed_to_pwm);
         }
 
         //清空线程

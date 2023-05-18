@@ -517,7 +517,7 @@ void USB_Edgeboard_Handle(void)
         system_delay_ms(1);
         //USB_Edgeboard_BatteryInfo();            //发送电池信息
         //system_delay_ms(1);
-        USB_Edgeboard_CarSpeed();                 //发送车速
+        //USB_Edgeboard_CarSpeed();                 //发送车速
         usbStr.counterSend = 0;
     }
 }
@@ -688,7 +688,7 @@ void USB_Edgeboard_CarSpeed(void)
     //整理发送的数据
     Byte4_Union byte4_union;
     uint8_t check = 0;
-    uint8_t buff[10];
+    uint8_t buff[8];
 
     //帧头
     buff[0] = 0x42;
@@ -710,10 +710,8 @@ void USB_Edgeboard_CarSpeed(void)
     //写入和校验数据
     buff[7] = check;
     //发送数据
-    uart_write_buffer(eb_using_uart, buff, 10);
+    uart_write_buffer(eb_using_uart, buff, 8);
 }
-
-
 
 //----------------------------------------------[向上位机发送通信内容]----------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
@@ -726,12 +724,12 @@ void senddata_to_upper(float senddata)
     //整理发送的数据
     Byte4_Union byte4_union;
     uint8_t check = 0;
-    uint8_t buff[10];
+    uint8_t buff[8];
 
     //帧头
     buff[0] = 0x42;
     //地址
-    buff[1] = 0xAA;
+    buff[1] = USB_ADDR_SPEEDBACK;
     //帧长
     buff[2] = 0x08;
 
@@ -748,8 +746,9 @@ void senddata_to_upper(float senddata)
     //写入和校验数据
     buff[7] = check;
     //发送数据
-    uart_write_buffer(eb_using_uart, buff, 10);
+    uart_write_buffer(eb_using_uart, buff, 8);
 }
+
 
 #endif
 

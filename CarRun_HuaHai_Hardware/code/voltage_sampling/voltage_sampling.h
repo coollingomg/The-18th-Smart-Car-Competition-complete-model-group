@@ -14,6 +14,7 @@
 
 //宏定义相关常量
 #define VOLTAGE_VALUE   11.0
+#define VOLTAGE_MIN     2.0
 #define SAMPL_TIME      1000
 #define CONVERSION_FAC  4095.0
 #define MAX_VOLTAGE     3.3 * 4.0
@@ -24,6 +25,7 @@ typedef struct
     bool    if_adc_handle;     //adc处理标志位
     float   adc_getNum;        //adc采样值
     uint16  count;             //计数器
+    bool    key_contral;       //按键控制电量提醒
 }ADC_sampling;
 
 

@@ -125,6 +125,8 @@ void USB_Edgeboard_Handle           (void);
 void USB_Edgeboard_ServoThreshold   (uint8 chanel);
 void USB_Edgeboard_CarSpeed         (void);
 #endif
+
+void senddata_to_upper              (float senddata);
 //==================================================UART »ù´¡º¯Êý==================================================
 
 

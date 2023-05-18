@@ -31,12 +31,12 @@
 
 //输出限制宏定义
 #define CAR_MAX_SPEED   9500        //避免满占空比，损坏mos管
-#define CAR_IMAX_OUT    1500
+#define CAR_IMAX_OUT    4000
 
 //宏定义pi
 #define PI_MOTOR                    3.1415926535898f
 //电机控制周期T：10ms
-#define MOTOR_CONTROL_CYCLE         0.01f
+#define MOTOR_CONTROL_CYCLE         0.003f
 
 //定义电机控制结构体
 typedef struct
