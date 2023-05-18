@@ -125,9 +125,9 @@ void Buzzer_Enable(BuzzerEnum buzzer)
             break;
 
         case BuzzerVoltage:
-            buzzerStr.Cut = 50;        //50ms
+            buzzerStr.Cut = 15;         //15ms
             buzzerStr.Enable = true;
-            buzzerStr.Times = 5;
+            buzzerStr.Times = 10;
             break;
     }
 

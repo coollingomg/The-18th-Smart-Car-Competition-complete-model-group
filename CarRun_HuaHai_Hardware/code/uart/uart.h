@@ -94,6 +94,7 @@
         uint8  receiveBuffFinished[USB_FRAME_LENMAX];            //USB接收队列：校验成功
         uint16 counter;                                          //计数器
         uint16 counterDrop;                                      //掉线计数器
+        uint16 counterSend_upper;                                //往上位机发送速度计时器
 
         uint8  data_verity;                                      //数据校验
 
@@ -126,7 +127,7 @@ void USB_Edgeboard_ServoThreshold   (uint8 chanel);
 void USB_Edgeboard_CarSpeed         (void);
 #endif
 
-void senddata_to_upper              (float senddata);
+void senddata_to_upper              (uint8_t addr,float senddata);
 //==================================================UART 基础函数==================================================
 
 

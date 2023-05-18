@@ -51,12 +51,13 @@ void my_uart_init(uart_index_enum uartn, uint32 baud, uart_tx_pin_enum tx_pin, u
     Bluetooth_data.copyready = false;           //初始时数据未接收到
 #else
     //UsbStruct数据初始化
-    usbStr.counter = 0;
+    usbStr.counter = 0;                         //连接时间计数器初始化为0
     usbStr.receiveFinished = false;
     usbStr.receiveStart = false;
     usbStr.receiveIndex = 0;
-    usbStr.connected = false;
+    usbStr.connected = false;                   //初始化默认未与上位机连接
     usbStr.inspectorEnable = false;
+    usbStr.counterSend_upper = 0;               //初始化发送速度的计时器
 #endif
 }
 
@@ -326,9 +327,13 @@ IFX_INTERRUPT(uart2_rx_isr, 0, UART2_RX_INT_PRIO)
 #if !USING_BLUETOOTH_OR_EGBOARD
 void USB_Edgeboard_Timr(void)
 {
+
     //Edgeboard通信掉线检测
     if(usbStr.connected)
     {
+        //向上位机发送速度计数器自增->通信连接了才发送速度
+        usbStr.counterSend_upper++;
+
         //如果为连接状态，点灯，说明为连接
         gpio_low(P20_9);
         //先前连接成功了，为连接状态。如果一直有通信，会在中断中不断清零掉线计数器
@@ -517,8 +522,17 @@ void USB_Edgeboard_Handle(void)
         system_delay_ms(1);
         //USB_Edgeboard_BatteryInfo();            //发送电池信息
         //system_delay_ms(1);
-        //USB_Edgeboard_CarSpeed();                 //发送车速
+        USB_Edgeboard_CarSpeed();                 //发送车速
         usbStr.counterSend = 0;
+    }
+
+//-----------------------[往上位机发送信息]--------------------------------
+    if(usbStr.counterSend_upper >= 20)  //20ms发一次数据
+    {
+        //发送车速
+        USB_Edgeboard_CarSpeed();
+        //清空计数器
+        usbStr.counterSend_upper = 0;
     }
 }
 #endif
@@ -719,7 +733,7 @@ void USB_Edgeboard_CarSpeed(void)
 // 参数说明     senddata  将要发送的所有数据写入
 // 返回参数     void
 //-------------------------------------------------------------------------------------------------------------------
-void senddata_to_upper(float senddata)
+void senddata_to_upper(uint8_t addr,float senddata)
 {
     //整理发送的数据
     Byte4_Union byte4_union;
@@ -729,7 +743,7 @@ void senddata_to_upper(float senddata)
     //帧头
     buff[0] = 0x42;
     //地址
-    buff[1] = USB_ADDR_SPEEDBACK;
+    buff[1] = addr;
     //帧长
     buff[2] = 0x08;
 
