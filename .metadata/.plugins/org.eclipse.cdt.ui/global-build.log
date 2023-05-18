@@ -12751,3 +12751,14 @@ RAM: 0x7a75 (31349) = data + bss
 已结束构建： CarRun_HuaHai_Hardware.siz
  
 rm code/car_control/car_control.src
+Build started...
+16:16:02 **** 项目CarRun_HuaHai_Hardware配置Debug的增量构建 ****
+make --output-sync -j8 all 
+TASKING VX-toolset for AURIX Development Studio (non-commercial): ELF size v1.1r8 Build 22011964
+正在调用： Print Size
+elfsize  "CarRun_HuaHai_Hardware.elf"
+Total sizes:
+ROM: 0xc118 (49432) = code: 0x9dee (40430) + romdata: 0x232a (9002)
+RAM: 0x7a75 (31349) = data + bss
+已结束构建： CarRun_HuaHai_Hardware.siz
+ 
