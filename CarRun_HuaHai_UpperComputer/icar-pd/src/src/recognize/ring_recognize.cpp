@@ -80,7 +80,7 @@ public:
             uint16_t rowBreakRightDown = searchBreakRightDown(track.pointsEdgeRight, 0, ROWSIMAGE / 2);
             uint16_t rowBreakLeftDown = searchBreakLeftDown(track.pointsEdgeLeft, 0, ROWSIMAGE / 2);
 
-            if(rowBreakLeftDown != 0 && rowBreakRightDown == 0 && track.stdevLeft > 150 && track.stdevRight < 50
+            if(rowBreakLeftDown != 0 && rowBreakRightDown == 0 && track.stdevLeft > 120 && track.stdevRight < 50
                 && abs(track.pointsEdgeRight[0].y - track.pointsEdgeRight[ROWSIMAGE / 2].y) > 5
                 && track.widthBlock[rowBreakLeftDown + 5].y > COLSIMAGE / 2)
             {
@@ -91,7 +91,7 @@ public:
                     ringType = RingType::RingLeft;
                 }
             }
-            else if(rowBreakLeftDown == 0 && rowBreakRightDown != 0 && track.stdevLeft < 50 && track.stdevRight > 150
+            else if(rowBreakLeftDown == 0 && rowBreakRightDown != 0 && track.stdevLeft < 50 && track.stdevRight > 120
                 && abs(track.pointsEdgeLeft[0].y - track.pointsEdgeLeft[ROWSIMAGE / 2].y) > 5
                 && track.widthBlock[rowBreakRightDown + 5].y > COLSIMAGE / 2)
             {

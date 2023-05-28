@@ -16,16 +16,8 @@ struct DetectionResult
 class Detection
 {
 public:
-    bool AI_Captured = false;
-
-public:
     Detection() {}
-    ~Detection() {
-        if (_thread)
-        {
-            _thread->join(); // 等待线程执行结束
-        }
-    }
+    ~Detection() {}
 
     int init(std::string model_config_path)
     {
@@ -42,6 +34,11 @@ public:
     {
         _loop = false;
         _thread->join();
+    }
+
+    bool AI_Enable()
+    {
+        return AI_Captured;
     }
 
     void run()
@@ -64,9 +61,28 @@ public:
                 auto feeds = _predictor->preprocess(result->rgb_frame, {320, 320});
                 _predictor->run(*feeds);
                 _predictor->render();
-                result->predictor_results = _predictor->results;
+
+                bool flag = false;
+                if(_predictor->results.size() > 0)
+                {
+                    flag = true;
+                }
+                if(_Cnt == 0)
+                {
+                    AI_Captured = flag;
+                }
+                
+                if(AI_Captured)
+                {
+                    _Cnt++;
+                    if(_Cnt > 8)
+                    {
+                        _Cnt = 0;
+                    } 
+                }
             
                 //数据传递
+                result->predictor_results = _predictor->results;
                 std::unique_lock<std::mutex> lock2(_mutex);
                 _lastResult = result;
                 cond_.notify_all();
@@ -136,6 +152,9 @@ private:
     std::shared_ptr<PPNCDetection> _predictor;
     std::shared_ptr<DetectionResult> _lastResult;
     std::shared_ptr<cv::Mat> _frame;
+    
+    uint16_t _Cnt = 0;//计数器
+    bool AI_Captured = false;
 
     std::mutex _mutex;
     std::condition_variable cond_;

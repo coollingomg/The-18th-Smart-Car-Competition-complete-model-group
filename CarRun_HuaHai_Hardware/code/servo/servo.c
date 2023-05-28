@@ -20,7 +20,7 @@ ServoStruct servoStr;
 void servo_init(void)
 {
     //舵机初始化
-    pwm_init(servo_pwm_out_pin, 50, (uint32)(medium_point * TO_PENCENT));    //占空比在0~10000.
+    pwm_init(servo_pwm_out_pin, 250, (uint32)(medium_point * TO_PENCENT));    //占空比在0~10000.
     //初始时，舵机在中点位置
     pwm_set_duty(servo_pwm_out_pin, (uint32)(medium_point * TO_PENCENT));
     //初始化线程相关参数

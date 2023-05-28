@@ -153,8 +153,11 @@ void motor_ControlLoop(void)
         motorStr.EncoderValue = encoder_get_count(USING_TIMER);
         //清空定时器的值
         encoder_clear_count(USING_TIMER);
-        //获取实际速度；计算公式：定时器计数值/4倍频/编码器线数/电机的减速比/循环时间*pi*车轮直径
-        icarStr.SpeedFeedback = (float)(motorStr.EncoderValue * PI_MOTOR * motorStr.DiameterWheel)/ MOTOR_CONTROL_CYCLE / motorStr.EncoderLine / 4.0f / motorStr.ReductionRatio;
+        //获取实际速度；计算公式：定时器计数值/4倍频/编码器线数/电机的减速比/循环时间*轮子半径*PI
+        icarStr.SpeedFeedback = (float)(motorStr.EncoderValue * motorStr.DiameterWheel * PI_MOTOR)/ MOTOR_CONTROL_CYCLE / motorStr.EncoderLine / 4.0f / motorStr.ReductionRatio;
+        //icarStr.SpeedFeedback = (float)(motorStr.EncoderValue * 0.01265);
+        //icarStr.SpeedFeedback = (float)(motorStr.EncoderValue) / MOTOR_CONTROL_CYCLE / motorStr.EncoderLine / 4.0f / motorStr.ReductionRatio * 7.0f * 0.206f / 19.0f;
+        //icarStr.SpeedFeedback = 0.075 / ((float)(motorStr.EncoderValue) / MOTOR_CONTROL_CYCLE / motorStr.EncoderLine / 4.0f);
 
         //通信连接才开启闭环（保护+省电）
         if(usbStr.connected)

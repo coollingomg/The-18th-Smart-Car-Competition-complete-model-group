@@ -397,7 +397,7 @@ void uart_init (uart_index_enum uart_n, uint32 baud, uart_tx_pin_enum tx_pin, ua
 
     uart_set_interrupt_priority(uart_n);                   // 设置中断优先级
 
-    uart_config.baudrate.prescaler    = 4;
+    uart_config.baudrate.prescaler    = 3;
     uart_config.baudrate.baudrate     = (float32)baud;
     uart_config.baudrate.oversampling = IfxAsclin_OversamplingFactor_8;
 

@@ -15,7 +15,7 @@
 #define servo_pwm_out_pin   13      //使用的ATOM0_CH1_P33_9
 
 //比例换算
-#define TO_PENCENT          (1.0f/1000.0f/20.0f*10000.0f)
+#define TO_PENCENT          (2.5f)
 //宏定义输出PWM最小值
 #define SERVO_PWM_MIN       500
 //宏定义输出PWM最大值

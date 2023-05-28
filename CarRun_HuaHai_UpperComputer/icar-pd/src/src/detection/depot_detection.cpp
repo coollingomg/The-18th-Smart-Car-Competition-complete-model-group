@@ -79,7 +79,7 @@ public:
 		switch (depotStep)
 		{
 		case DepotStep::DepotNone: //[01] 维修厂标志检测
-			if (counterImmunity > 20)
+			if (counterImmunity > 30)
 			{
 				for (int i = 0; i < predict.size(); i++)
 				{
@@ -378,7 +378,7 @@ private:
 							vector<POINT> pointsCone)
 	{
 		POINT point(ROWSIMAGE - 10, 0);
-		double disMin = 50; // 右边缘锥桶离赛道左边缘最小距离
+		double disMin = 80; // 右边缘锥桶离赛道左边缘最小距离
 
 		if (pointsCone.size() <= 0 || pointsEdgeLeft.size() < 10)
 			return point;

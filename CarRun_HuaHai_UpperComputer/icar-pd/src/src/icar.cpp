@@ -170,14 +170,6 @@ int main(int argc, char *argv[])
 		watch.tic();
 		Mat frame;
 		frame = captureInterface.get_frame();
-		if(motionController.params.SaveImage)
-		{
-            static int counter = 0;
-            counter++;
-            string img_path = "../res/train/";
-            string name = img_path + to_string(counter) + ".jpg";
-            imwrite(name, frame);
-		}
 		double camera_time = watch.toc();
 
 		watch.tic();
@@ -511,6 +503,16 @@ int main(int argc, char *argv[])
 					callbackSignal(0);
 				}
 			}
+		}
+		//存图使能
+		if(motionController.params.SaveImage)
+		{
+            static int counter = 0;
+            counter++;
+            string img_path = "../res/train/";
+            string name = img_path + to_string(counter) + ".jpg";
+			trackRecognition.drawImage(imageTrack);					  // 图像显示赛道线识别结果
+            imwrite(name, imageTrack);
 		}
 		double display_time = watch.toc();
 
