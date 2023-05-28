@@ -1,3 +1,18 @@
+/**
+ * @file garage_recognize.cpp
+ * @author WHUT-wzl
+ * @brief 车库识别
+ * @version 0.1
+ * @date 2023-05-21
+ * @copyright Copyright (c) 2023
+ * @note 车库识别步骤:
+ *                  [01] 车库标志识别：斑马线
+ *                  [02] 入库点搜索：拐点搜索确定
+ *                  [03] 入库路径规划
+ *                  [04] 入库完成判定
+ */
+
+
 #include <fstream>
 #include <iostream>
 #include <cmath>
@@ -16,15 +31,29 @@ using namespace std;
 
 class GarageRecognition
 {
+public:
+    GarageRecognition()
+    {
+        loadParams();
+    }
 private:
     /**
      * @brief 控制器核心参数
      */
     struct Params
     {
-        uint16_t garage_run = 0;    // 选择出库方式
+        uint16_t    garage_run = 0;         // 选择出库方式
+        uint16_t    corner_lines = 0;       // 开始打角行数
+        uint16_t    slowdown_condition = 0; // 入库开始减速的行数
+        uint16_t    disGarageEntry = 0;     // 入库开始补线的行数
+        uint16_t    stop_line = 0;          // 入库停车行数
+        int         brakePicNum = 0;        // 刹车帧数
+        float       speed_nor = 0;          // 刚检测到库，不减速
+        float       speed_in = 0;           // 减速入库
+        float       speed_out = 0;          // 出库速度
+        int         shield_counter = 0;     // 屏蔽计数器
         NLOHMANN_DEFINE_TYPE_INTRUSIVE(
-            Params, garage_run); // 添加构造函数
+            Params, garage_run, corner_lines, slowdown_condition, disGarageEntry, stop_line, brakePicNum, speed_nor, speed_in, speed_out, shield_counter); // 添加构造函数
     };
 
 
@@ -42,22 +71,37 @@ private:
         GARAGE_IN_RIGHT,    // 入库 右
         GARAGE_PASS_LEFT,   // 不进库 左
         GARAGE_PASS_RIGHT,  // 不进库 右
+        GARAGE_HALF_STOP,   // 半入库
+        GARAGE_BRAKE,       // 停车
         GARAGE_STOP,        // 进库完毕, 停车
     };
 
 
     // 定义入库状态机枚举变量,初始值为none
     flag_garage_e flag_garage = GARAGE_NONE;
-
-    // 定义用于绘图的点，描述布线的三个点
+    // 定义用于绘图的点，描述布线的三个点，和ai识别框的中点
     POINT _pointRU;
     POINT _pointLU;
     POINT _pointRD;
-
+    POINT _crosswalk;
     // 读取控制参数
     Params params;
+    // 定义一个计数器，当连续几张图片中都检测到斑马线，才确认检测到
+    uint16_t chack_picNum = 0;
+    // 定义一个计数器，当第一张张检测到斑马线，开始计之后的图像数量
+    uint16_t ensure_picNum = 0;
 
 
+public:
+    // 变量相关定义
+    int     garage_num      = 0;                        // 记录当前第几次到达车库
+    float   speed_ku        = 0;                        // 速度控制，默认0.8m
+    int     picNum_brake    = 0;                        // 刹车帧数
+    bool    Garage_screen   = false;                    // 车库屏蔽标志位
+    int     garage_scre_num = params.shield_counter;    // 屏蔽计数器标志位
+
+
+private:
     /**
      * @brief 起点检测，只用于发车时判断是否在车库
      * @param predict
@@ -89,14 +133,14 @@ private:
             counterSessionTwo++;
 
             // 如果在8帧图像中，有4帧检测到斑马线，则视为在车库内。然后清零计数器
-            if (counterCrosswalk >= 4 && counterSessionTwo <= 8)
+            if (counterCrosswalk >= 2 && counterSessionTwo <= 4)
             {
                 counterSessionTwo = 0;
                 counterCrosswalk = 0;
                 return true;
             }
             // 不满足要求则清零计数器，并返回没有检测到起点车库
-            else if (counterSessionTwo > 8)
+            else if (counterSessionTwo > 4)
             {
                 counterSessionTwo = 0;
                 counterCrosswalk = 0;
@@ -155,9 +199,10 @@ private:
     /**
      * @brief 冒泡法求取集合中值，由小到大
      * @param vec 输入集合
+     * @param return_choise 返回值选择
      * @return int 中值
      */
-    int getMiddleValue(vector<int> vec)
+    int getMiddleValue(vector<int> vec, char return_choise)
     {
         // 传入集合的合理性判断
         if (vec.size() < 1)
@@ -186,7 +231,14 @@ private:
         }
 
         // 返回中值
-        return vec[(int)vec.size() / 2];
+        if(return_choise == 'm')
+        {
+            return vec[(int)vec.size() / 2];
+        }
+        else if(return_choise == 'f')
+        {
+            return vec[0];
+        }
     }
 
 
@@ -208,7 +260,7 @@ private:
             cols.push_back(spurroad[i].y);
         }
         // 对横坐标进行冒泡排序
-        int colBest = getMiddleValue(cols); 
+        int colBest = getMiddleValue(cols, 'm'); 
         POINT spurroadBest = POINT(ROWSIMAGE, colBest);
 
         // 搜索最佳岔路：横向中心|纵向最高
@@ -227,7 +279,44 @@ private:
 
 
     /**
-     * @brief 搜索环岛赛道突变行（左下）
+     * @brief 搜索最佳岔路,最高点
+     * @param spurroad 岔路集合
+     * @return POINT 岔路坐标
+     */
+    POINT searchBestSpurroad_High(vector<POINT> spurroad)
+    {
+        // 没有岔路点，返回图线左上第一个点
+        if (spurroad.size() < 1)
+            return POINT(0, 0);
+
+        // 记录所有的x轴坐标值
+        vector<int> rows;
+        for (int i = 0; i < spurroad.size(); i++)
+        {
+            rows.push_back(spurroad[i].x);
+        }
+
+        // 对纵坐标进行冒泡排序，从小到大排序，选取最小值
+        int rowBest = getMiddleValue(rows, 'f');
+        // 定义一个点记录纵坐标，横坐标随便
+        POINT spurroadBest = POINT(rowBest, 0);
+
+        // 搜索最佳岔路：纵向最高
+        for (int i = 0; i < spurroad.size(); i++)
+        {
+            if(spurroadBest.x == spurroad[i].x)
+            {
+                spurroadBest = spurroad[i];
+            }
+        }
+
+        // 返回最佳岔路点
+        return spurroadBest;
+    }
+
+
+    /**
+     * @brief 搜索赛道突变行（左下）
      * @param pointsEdgeLeft 左边缘线
      * @param row_start 起始搜寻行
      * @param row_end 终止搜寻行
@@ -236,7 +325,7 @@ private:
     uint16_t searchBreakLeftDown(vector<POINT> pointsEdgeLeft, uint16_t row_start, uint16_t row_end)
     {
         bool start = false;
-        uint16_t rowBreakLeft = 1;
+        uint16_t rowBreakLeft = 0;
         uint16_t counter = 0;
 
         if(pointsEdgeLeft.size() == 0)
@@ -244,10 +333,11 @@ private:
             return 0;
         }
         
-        if(row_start == 0)
-        {
-            row_start++;
-        }
+        // if(row_start == 0)
+        // {
+        //     row_start++;
+        // }
+
         // 限幅判断
         if(row_end > pointsEdgeLeft.size())
         {
@@ -282,12 +372,12 @@ private:
             }
         }
         // 没有搜寻到，返回0
-        return 0;
+        return rowBreakLeft;
     }
 
 
     /**
-     * @brief 搜索环岛赛道突变行（右下）
+     * @brief 搜索赛道突变行（右下）
      * @param pointsEdgeRight 右边缘线
      * @param row_start 起始搜寻行
      * @param row_end 终止搜寻行
@@ -296,7 +386,7 @@ private:
     uint16_t searchBreakRightDown(vector<POINT> pointsEdgeRight, uint16_t row_start, uint16_t row_end)
     {
         bool start = false;
-        uint16_t rowBreakRight = 1;
+        uint16_t rowBreakRight = 0;
         uint16_t counter = 0;
 
         if(pointsEdgeRight.size() == 0)
@@ -304,10 +394,11 @@ private:
             return 0;
         }
 
-        if(row_start == 0)
-        {
-            row_start++;
-        }
+        // if(row_start == 0)
+        // {
+        //     row_start++;
+        // }
+
         if(row_end > pointsEdgeRight.size())
         {
             row_end = pointsEdgeRight.size();
@@ -330,7 +421,7 @@ private:
                     rowBreakRight = i;
                     counter = 0;
                 }
-                 // 突变点计数
+                // 突变点计数
                 else if (pointsEdgeRight[i].y > pointsEdgeRight[rowBreakRight].y)
                 {
                     counter++;
@@ -340,7 +431,44 @@ private:
             }
         }
         // 没有搜寻到，返回0
-        return 0;
+        return rowBreakRight;
+    }
+
+
+    /**
+     * @brief 搜索赛道突变行（右上）
+     * @param pointsEdgeRight 右边缘线
+     * @return uint16_t
+     */
+    uint16_t sBreakRightUp(vector<POINT> pointsEdgeRight)
+    {
+        bool start = false;
+        uint16_t rowBreakRight = pointsEdgeRight.size() - 1;
+        uint16_t counter = 0;
+
+        if(pointsEdgeRight.size() == 0)
+        {
+            return 0;
+        }
+
+        // 寻找右边跳变点
+        for (int i = pointsEdgeRight.size() - 1; i > 0; i--) 
+        {
+            if (pointsEdgeRight[i].y >= pointsEdgeRight[rowBreakRight].y && (pointsEdgeRight[i].y - pointsEdgeRight[rowBreakRight].y < 10))
+            {
+                rowBreakRight = i;
+                counter = 0;
+            }
+            // 突变点计数
+            else
+            {
+                counter++;
+                if (counter > 5)
+                    return rowBreakRight;
+            }
+        }
+        // 没有搜寻到，直接返回
+        return rowBreakRight;
     }
 
 
@@ -401,14 +529,6 @@ private:
 
 
 public:
-    // 变量相关定义
-    float   garage_route    = 0;                    // 车库编码器积分
-    bool    garage_stop     = false;                // 车库停车标志位
-    int     garage_num      = 0;                    // 记录当前第几次到达车库
-    int     none_left       = 0, none_right = 0;
-    int     have_left       = 0, have_right = 0;
-
-
     /**
      * @brief 车库初始化函数
      * @param void
@@ -418,6 +538,30 @@ public:
     {
         // 出入库状态机，初始为出库准备
         flag_garage = flag_garage_e::GARAGE_OUT_READY;
+    }
+
+
+    /**
+     * @brief 计数器清零函数
+     * @param void
+     * @return void
+     */
+    void counter_reset(void)
+    {
+        // 清零
+        uint16_t chack_picNum = 0;
+        uint16_t ensure_picNum = 0;
+    }
+
+
+    /**
+     * @brief 得到目前控制速度
+     * @param void
+     * @return float
+     */
+    float get_speed(void)
+    {
+        return speed_ku;
     }
 
 
@@ -449,11 +593,12 @@ public:
 
         // 检测斑马线
         status = check_garage(predict);
-
+        
         // 判断目前的赛道类型->检测到斑马线，进行出库入库操作
         if(flag_garage == flag_garage_e::GARAGE_OUT_LEFT || flag_garage == flag_garage_e::GARAGE_OUT_RIGHT ||
            flag_garage == flag_garage_e::GARAGE_IN_LEFT || flag_garage == flag_garage_e::GARAGE_IN_RIGHT ||
-           flag_garage == flag_garage_e::GARAGE_PASS_LEFT || flag_garage == flag_garage_e::GARAGE_PASS_RIGHT)
+           flag_garage == flag_garage_e::GARAGE_PASS_LEFT || flag_garage == flag_garage_e::GARAGE_PASS_RIGHT || 
+           flag_garage == flag_garage_e::GARAGE_HALF_STOP || flag_garage == flag_garage_e::GARAGE_BRAKE)
         {
             // 返回状态
             status = true;
@@ -499,6 +644,7 @@ public:
                     flag_garage = flag_garage_e::GARAGE_OUT_RIGHT;
                 }
                 count_to_CarNotInGarage = 0;
+                speed_ku = params.speed_out;
                 if_garage = true;
             }
             // 返回假，说明可能没有检测到8帧图像达到判断条件；或者车初始位置不在车库中
@@ -518,15 +664,50 @@ public:
         /*******************************************************************/
 
         // 空闲状态机，完成出库后，回到空闲状态机
-        else if (flag_garage == flag_garage_e::GARAGE_NONE) 
+        else if (flag_garage == flag_garage_e::GARAGE_NONE)
         {
             // 返回真，说明检测到斑马线，改变状态机
             if(searchCrosswalk_if_recognize(predict))
+                chack_picNum++;
+            if(chack_picNum)
             {
-                flag_garage = GARAGE_DETECTION;
-                // 返回真，检测到斑马线，用于清空跑完一圈其他
-                if_garage = true;
-            }                
+                // 图片帧数计数
+                ensure_picNum++;
+                // 当在5帧图像中，有大于等于3帧图片检测到斑马线，则进入下一个状态
+                if (chack_picNum >= 2)
+                {
+                    flag_garage = GARAGE_DETECTION;
+                    // 返回真，检测到斑马线，用于清空跑完一圈其他
+                    if_garage = true;
+
+                    // 进入下一个状态机，清空计数器
+                    ensure_picNum = 0;
+                    chack_picNum = 0;
+                }
+
+                // 在第一次检测到斑马线之后，5真图片后，清空计数器
+                if (ensure_picNum > 4)
+                {
+                    ensure_picNum = 0;
+                    chack_picNum = 0;
+                }
+            }
+        }
+
+        /*******************************************************************/
+
+        // 如果车库处于屏蔽状态，在一定时间内，再次识别到斑马线也不进入车库状态机
+        if(Garage_screen)
+        {
+            flag_garage = flag_garage_e::GARAGE_NONE;
+            if_garage = false;
+
+            // 等待屏蔽计数器完成，重新幅值并清除标志位
+            if((--garage_scre_num) <= 0)
+            {
+                Garage_screen = false;
+                garage_scre_num = params.shield_counter;
+            }
         }
 
         /*******************************************************************/
@@ -593,40 +774,91 @@ public:
             case GARAGE_OUT_LEFT:
                 garageExitRecognition(track, predict);
                 break;
-
         /* ********************************************************* */
             // 出库，右库
             case GARAGE_OUT_RIGHT:
                 garageExitRecognition(track, predict);
                 break;
-
         /* ********************************************************* */
             // 入库，左库
             case GARAGE_IN_LEFT:
-
+                garageEntryRec(track, predict);
                 break;
-
         /* ********************************************************* */
             // 入库，右库
             case GARAGE_IN_RIGHT:
-
+                garageEntryRec(track, predict);
                 break;
-
         /* ********************************************************* */
             // 左库，不入库
             case GARAGE_PASS_LEFT:
-
+                no_processing(predict);
                 break;
-
         /* ********************************************************* */
             // 右库，不入库
             case GARAGE_PASS_RIGHT:
-
+                no_processing(predict);
                 break;
-
+        /* ********************************************************* */
+            // 半入库
+            case GARAGE_HALF_STOP:
+                // 屏蔽图像前半部分的信息
+                if(track.pointsEdgeLeft[0].x <= 130 || track.pointsEdgeRight[0].x <= 130)
+                {
+                    track.pointsEdgeLeft.resize(0);
+                    track.pointsEdgeRight.resize(0);
+                }
+                // 使用基础巡线即可，达到条件，停车
+                if((track.pointsEdgeLeft.size() <= params.stop_line && track.pointsEdgeRight.size() <= params.stop_line) &&
+                   (track.pointsEdgeLeft[0].x >= 130 || track.pointsEdgeRight[0].x >= 130 || track.pointsEdgeRight.size() == 0 || track.pointsEdgeLeft.size() == 0))
+                {
+                    flag_garage = GARAGE_BRAKE;
+                    speed_ku = -params.speed_nor;
+                }
+                break;
+        /* ********************************************************* */
+            // 刹车
+            case GARAGE_BRAKE:
+                speed_ku = -params.speed_nor;
+                picNum_brake++;
+                if(picNum_brake >= params.brakePicNum)
+                {
+                    flag_garage = GARAGE_STOP;
+                }
+                break;
         /* ********************************************************* */
             default:
                 break;
+        }
+    }
+
+
+    /**
+     * @brief 第一圈跑完，经过车库，是否完全过车库判断
+     * @param predict ai预测
+     */
+    void no_processing(vector<PredictResult> predict)
+    {
+        // 定义静态变量，用于计数，完全经过车库
+        static uint16_t counterExit = 0;
+        // 第一圈正常速度
+        speed_ku = params.speed_nor;
+        // 调用ai来检测斑马线，来判定是否出库，连续5帧图片都达到判定条件，则完成出库
+        if (!searchCrosswalk_if_recognize(predict)) 
+        {
+            // 计数器计数，如果有5帧图片，则出库完成，进入空闲状态机，并且开启屏蔽
+            counterExit++;
+            if (counterExit >= 5)
+            {
+                Garage_screen = true;
+                garage_scre_num = params.shield_counter;
+                flag_garage = flag_garage_e::GARAGE_NONE;
+            }
+        }
+        // 检测到斑马线，计数器清零
+        else
+        {
+            counterExit = 0;
         }
     }
 
@@ -659,7 +891,7 @@ public:
             {
                 // 计数器计数，如果有5帧图片，则出库完成，进入空闲状态机
                 counterExitOut++;
-                if (counterExitOut >= 5)
+                if (counterExitOut >= 6)
                 {
                     flag_garage = flag_garage_e::GARAGE_NONE;
                 }
@@ -670,17 +902,17 @@ public:
                 counterExitOut = 0;
             }
 
-            // 图像异常，退出该函数
-            if (track.pointsEdgeLeft.size() <= 1 || track.pointsEdgeRight.size() <= 1) 
-                return;
+            // // 图像异常，退出该函数
+            // if (track.pointsEdgeLeft.size() <= 2 || track.pointsEdgeRight.size() <= 2) 
+            //     return;
 
             // 拐点的搜寻
             uint16_t rowBreakLeft = searchBreakLeft(track.pointsEdgeLeft);                      // 左上拐点搜索
-            uint16_t rowBreakRight = searchBreakRightDown(track.pointsEdgeRight, 0, 45);        // 右下补线点搜索,从0开始到20行
-            uint16_t rowBreakLeft_Down = searchBreakLeftDown(track.pointsEdgeLeft, 0, 45);      // 左下点搜索,从0开始到20行
+            uint16_t rowBreakRight = searchBreakRightDown(track.pointsEdgeRight, 0, 60);        // 右下补线点搜索,从0开始到20行
+            uint16_t rowBreakLeft_Down = searchBreakLeftDown(track.pointsEdgeLeft, 0, 60);      // 左下点搜索,从0开始到20行
 
-            // 避免出库提前转向优化->当右下角或者左下角的拐点到达图像的下方20行的位置时，在开始转弯
-            if (track.pointsEdgeRight[rowBreakRight].x <= ROWSIMAGE - 40) 
+            // 避免出库提前转向优化->当右下角或者左下角的拐点到达图像的下方20行的位置时，在开始转弯；参数在配置文件中，方便修改
+            if (track.pointsEdgeRight[rowBreakRight].x <= params.corner_lines) 
             {
                 // 优化右边的边线
                 track.pointsEdgeRight.resize(rowBreakRight);
@@ -701,16 +933,16 @@ public:
             _pointRD = track.pointsEdgeLeft[rowBreakLeft];                      // dubug图中显示，补线的终点
 
             // 依赖岔路补线
-            if (track.spurroad.size() > 2)
+            if (track.spurroad.size() >= 2)
             {
-                // 入库补线终点
+                // 出库补线终点
                 endPoint = searchBestSpurroad(track.spurroad);
 
                 // 补线起点和终点正确性校验，判断起点和中点的位置关系是否正确
                 if (startPoint.x > endPoint.x && startPoint.y > endPoint.y)
                 {
                     // 斑马线右边部分补线
-                    midPoint = POINT((startPoint.x + endPoint.x) * 0.4, (startPoint.y + endPoint.y) * 0.5);     // 入库补线中点
+                    midPoint = POINT((startPoint.x + endPoint.x) * 0.4, (startPoint.y + endPoint.y) * 0.5);     // 出库补线中点
                     _pointRU = endPoint;                                                                        // dubug图中显示，布线的中点
                     // 三阶贝塞尔曲线拟合
                     vector<POINT> repairPoints = {startPoint, midPoint, endPoint};
@@ -739,7 +971,7 @@ public:
                 }
 
                 // 左边缘错误点优化
-                track.pointsEdgeLeft.resize(rowBreakLeft);
+                track.pointsEdgeLeft.resize(rowBreakLeft_Down);
             }
         }
 
@@ -763,16 +995,16 @@ public:
             }
 
             // 图像异常，退出该函数
-            if (track.pointsEdgeLeft.size() <= 1 || track.pointsEdgeRight.size() <= 1) 
+            if (track.pointsEdgeLeft.size() < 1 || track.pointsEdgeRight.size() < 1) 
                 return;
 
             // 拐点的搜寻
-            uint16_t rowBreakLeft = searchBreakLeftDown(track.pointsEdgeRight, 0, 45);          // 左下补线点搜索，从0开始到20行
-            uint16_t rowBreakRight_Down = searchBreakRightDown(track.pointsEdgeRight, 0, 45);   // 右下补线点搜索,从0开始到20行
-            uint16_t rowBreakRight = searchBreakRight(track.pointsEdgeLeft);                    // 右上拐点搜索
+            uint16_t rowBreakLeft = searchBreakLeftDown(track.pointsEdgeLeft, 0, 60);           // 左下补线点搜索，从0开始到20行
+            uint16_t rowBreakRight_Down = searchBreakRightDown(track.pointsEdgeRight, 0, 60);   // 右下补线点搜索,从0开始到20行
+            uint16_t rowBreakRight = searchBreakRight(track.pointsEdgeRight);                   // 右上拐点搜索
 
             // 避免出库提前转向优化->当右下角或者左下角的拐点到达图像的下方25行的位置时，在开始转弯
-            if (track.pointsEdgeLeft[rowBreakLeft].x <= ROWSIMAGE - 25) 
+            if (track.pointsEdgeLeft[rowBreakLeft].x <= params.corner_lines) 
             {
                 // 优化左右两边的边线
                 track.pointsEdgeLeft.resize(rowBreakLeft);
@@ -795,14 +1027,14 @@ public:
             // 依赖岔路补线
             if (track.spurroad.size() > 2)
             {
-                // 入库补线终点
+                // 出库补线终点
                 endPoint = searchBestSpurroad(track.spurroad);
 
                 // 补线起点和终点正确性校验，判断起点和中点的位置关系是否正确
                 if (startPoint.x > endPoint.x && startPoint.y < endPoint.y)
                 {
                     // 斑马线右边部分补线
-                    midPoint = POINT((startPoint.x + endPoint.x) * 0.4, (startPoint.y + endPoint.y) * 0.5);     // 入库补线中点
+                    midPoint = POINT((startPoint.x + endPoint.x) * 0.4, (startPoint.y + endPoint.y) * 0.5);     // 出库补线中点
                     _pointRU = endPoint;                                                                        // dubug图中显示，布线的中点
                     // 三阶贝塞尔曲线拟合
                     vector<POINT> repairPoints = {startPoint, midPoint, endPoint};
@@ -836,6 +1068,153 @@ public:
         }
     }
 
+
+	/**
+	 * @brief 入库识别与路径规划
+	 * @param track 基础赛道识别结果
+	 */
+	void garageEntryRec(TrackRecognition &track, vector<PredictResult> predict)
+	{
+        // 用于dubug绘图，ai识别框中心点
+		_crosswalk = POINT(0, 0);
+        // 定义是否准备入库的标志位
+        static bool if_inStorage = false;
+
+        // ai识别，是否识别到斑马线，返回ai识别的框的中点
+		POINT crosswalk = searchCrosswalkSign(predict);
+		_crosswalk = crosswalk;
+
+        // 如果ai识别的斑马线框的中心点在图像上方的1/4，开始减速，准备入库
+        if (crosswalk.x > params.slowdown_condition)
+        {
+            speed_ku = params.speed_in;
+        }
+
+        // 如果到大一定的行数，开始入库，进行入库补线
+        if (crosswalk.x > params.disGarageEntry)
+        {
+            if_inStorage = true;
+        }
+
+        // 入左库
+        if(flag_garage == GARAGE_IN_LEFT)
+        {
+            //到达一定距离，开始入库，重新规划路线
+            if (if_inStorage)
+            {
+                // 通过拐点判断是否已经大半进入车库
+                if(track.spurroad.size() >= 1)
+                {
+                    // 拐点的搜寻
+                    uint16_t rowBreakLeft = searchBreakLeft(track.pointsEdgeLeft);                                  // 左上拐点搜索
+
+                    // 入库补线
+                    POINT startPoint = POINT(ROWSIMAGE - 10, COLSIMAGE -5);                                         // 入库补线起点:固定右下角
+                    POINT endPoint = searchBestSpurroad_High(track.spurroad);                                       // 入库补线终点
+                    POINT midPoint = POINT((startPoint.x + endPoint.x) * 0.4, (startPoint.y + endPoint.y) * 0.5);   // 入库补线中点
+                    // 三阶贝塞尔曲线拟合
+                    vector<POINT> repairPoints = {startPoint, midPoint, endPoint};
+                    vector<POINT> modifyEdge = Bezier(0.02, repairPoints); 
+                    // 清空基础赛道识别的路径，重新规划路径
+                    track.pointsEdgeRight.clear();
+                    track.pointsEdgeRight = modifyEdge;
+
+                    // 二次补线，左边完整补线
+                    startPoint = endPoint;
+                    endPoint = track.pointsEdgeLeft[rowBreakLeft];
+                    midPoint = POINT((startPoint.x + endPoint.x) * 0.5, (startPoint.y + endPoint.y) * 0.5);         // 入库补线中点
+                    // 三阶贝塞尔曲线拟合
+                    repairPoints = {startPoint, midPoint, endPoint};
+                    modifyEdge.resize(0);
+                    modifyEdge = Bezier(0.04, repairPoints);
+                    // 将拟合曲线加进去
+                    for (int i = 0; i < modifyEdge.size(); i++)
+                    {
+                        track.pointsEdgeRight.push_back(modifyEdge[i]);
+                    }
+
+                    // 清空基础赛道识别的路径
+                    track.pointsEdgeLeft.clear();
+                }
+                // 判断已经大半进库，不用补线
+                else
+                {
+                    flag_garage = GARAGE_HALF_STOP;
+                }
+            }
+        }
+        else if(flag_garage == GARAGE_IN_RIGHT)
+        {
+            //到达一定距离，开始入库，重新规划路线
+            if (if_inStorage)
+            {
+                // 定义一个计数器，用来使拐点消失后5帧继续补线
+                static int num = 0;
+                num++;
+
+                // 拐点的搜寻        
+                uint16_t rowBreakRight = searchBreakRight(track.pointsEdgeRight);                               // 右上拐点搜索
+                uint16_t rowBreakRightUp = sBreakRightUp(track.pointsEdgeRight);                                // 右上拐点搜索
+
+                // if(crosswalk.x > 0)
+                // {
+
+                // 入库补线
+                POINT startPoint = POINT(ROWSIMAGE - 10, 5);                                                    // 入库补线起点:固定左下角
+                POINT endPoint = track.pointsEdgeRight[rowBreakRightUp];                                        // 入库补线终点
+                POINT midPoint = POINT((startPoint.x + endPoint.x) * 0.4, (startPoint.y + endPoint.y) * 0.5);   // 入库补线中点      
+                                
+                // }
+                // else
+                // {
+                //     // 入库补线
+                //     startPoint = POINT(ROWSIMAGE - 10, 5);                                                    // 入库补线起点:固定左下角
+                //     endPoint = searchBestSpurroad_High(track.spurroad);                                       // 入库补线终点
+                //     midPoint = POINT((startPoint.x + endPoint.x) * 0.4, (startPoint.y + endPoint.y) * 0.5);   // 入库补线中点
+                // }
+
+                // 三阶贝塞尔曲线拟合
+                vector<POINT> repairPoints = {startPoint, midPoint, endPoint};
+                vector<POINT> modifyEdge = Bezier(0.02, repairPoints); 
+                // 清空基础赛道识别的路径，重新规划路径
+                track.pointsEdgeLeft.clear();
+                track.pointsEdgeLeft = modifyEdge;
+
+                // 二次补线，左边完整补线
+                startPoint = endPoint;
+                endPoint = track.pointsEdgeRight[rowBreakRight];
+                midPoint = POINT((startPoint.x + endPoint.x) * 0.5, (startPoint.y + endPoint.y) * 0.5);         // 入库补线中点
+                // 三阶贝塞尔曲线拟合
+                repairPoints = {startPoint, midPoint, endPoint};
+                modifyEdge.resize(0);
+                modifyEdge = Bezier(0.04, repairPoints);
+                // 将拟合曲线加进去
+                for (int i = 0; i < modifyEdge.size(); i++)
+                {
+                    track.pointsEdgeLeft.push_back(modifyEdge[i]);
+                }
+
+                // 清空基础赛道识别的路径
+                track.pointsEdgeRight.clear();
+
+                // 通过拐点判断是否已经大半进入车库
+                if(track.spurroad.size() >= 1)
+                {
+                    // 计数器清零
+                    num = 0;
+                }
+                // 判断已经大半进库，不用补线
+                else
+                {
+                    if(num >= 5)
+                    {
+                        flag_garage = GARAGE_HALF_STOP;
+                        num = 0;
+                    }
+                }
+            }
+        }
+	}
 
 
     /**
@@ -907,11 +1286,12 @@ public:
         putText(trackImage, step, Point(COLSIMAGE - 80, ROWSIMAGE - 20), cv::FONT_HERSHEY_TRIPLEX, 0.3, cv::Scalar(0, 0, 255), 1, CV_AA);
         // putText(trackImage, "Garage", Point(COLSIMAGE / 2 - 5, 20), cv::FONT_HERSHEY_TRIPLEX, 0.5, cv::Scalar(0, 255, 0), 1, CV_AA); // 显示赛道识别类型
 
-        // if (_crosswalk.x > 0)
-        // {
-        //     string str = to_string(_crosswalk.x);
-        //     putText(trackImage, str, Point(COLSIMAGE / 2, ROWSIMAGE - 100), cv::FONT_HERSHEY_TRIPLEX, 0.3, cv::Scalar(0, 0, 255), 1, CV_AA);
-        // }
+        // ai识别框的中点绘图
+        if (_crosswalk.x > 0)
+        {
+            string str = to_string(_crosswalk.x);
+            putText(trackImage, str, Point(COLSIMAGE / 2, ROWSIMAGE - 100), cv::FONT_HERSHEY_TRIPLEX, 0.3, cv::Scalar(0, 0, 255), 1, CV_AA);
+        }
     }
 
 

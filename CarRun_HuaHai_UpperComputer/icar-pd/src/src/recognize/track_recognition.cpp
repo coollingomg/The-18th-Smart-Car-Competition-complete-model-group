@@ -46,6 +46,19 @@ public:
     uint16_t rowCutUp = 30;           // 图像顶部切行
     uint16_t rowCutBottom = 10;       // 图像底部切行
 
+    void reset()
+    {
+        pointsEdgeLeft.clear();
+        pointsEdgeRight.clear();
+        widthBlock.clear();
+        spurroad.clear();
+        stdevLeft = 0;
+        stdevRight = 0;
+        validRowsLeft = 0;
+        validRowsRight = 0;
+        garageEnable = POINT(0, 0);
+    }
+
     /**
      * @brief 赛道线识别
      *
@@ -166,7 +179,7 @@ public:
             int indexWidestBlock = 0;                      // 最宽色块的序号
             if (flagStartBlock)                            // 起始行做特殊处理
             {
-                if (row < ROWSIMAGE / 3)
+                if (row < ROWSIMAGE / 2)
                     return;
                 if (counterBlock == 0)
                 {
@@ -182,10 +195,10 @@ public:
                     }
                 }
 
-                int limitWidthBlock = COLSIMAGE * 0.7; // 首行色块宽度限制（不能太小）
+                int limitWidthBlock = COLSIMAGE * 0.6; // 首行色块宽度限制（不能太小）
                 if (row < ROWSIMAGE * 0.6)
                 {
-                    limitWidthBlock = COLSIMAGE * 0.4;
+                    limitWidthBlock = COLSIMAGE * 0.3;
                 }
                 if (widthBlocks > limitWidthBlock) // 满足首行宽度要求
                 {
@@ -352,7 +365,7 @@ public:
                 stdevLeft = stdevEdgeCal(pointsEdgeLeft, ROWSIMAGE); // 计算边缘方差
                 stdevRight = stdevEdgeCal(pointsEdgeRight, ROWSIMAGE);
 
-                validRowsCal(); // 有效行计算
+                // validRowsCal(); // 有效行计算
             }
         }
     }

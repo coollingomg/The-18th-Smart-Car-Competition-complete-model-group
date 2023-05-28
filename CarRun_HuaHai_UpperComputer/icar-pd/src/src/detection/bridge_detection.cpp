@@ -36,6 +36,22 @@ using namespace std;
 class BridgeDetection
 {
 public:
+    BridgeDetection()
+    {
+        loadParams();
+    }
+    /**
+     * @brief 桥梁区域核心参数
+     */
+    struct Params 
+    {
+        uint16_t BridgeCheck = 3;
+        float SpeedUp = 1.0;
+        uint16_t ExitFrameCnt = 30;
+        NLOHMANN_DEFINE_TYPE_INTRUSIVE(
+            Params, BridgeCheck, SpeedUp, ExitFrameCnt); // 添加构造函数
+    };
+
     /**
      * @brief 初始化
      *
@@ -57,7 +73,7 @@ public:
                 track.pointsEdgeRight.resize(track.pointsEdgeRight.size() / 2);
             }
             counterSession++;
-            if (counterSession > 30) // 上桥40场图像后失效
+            if (counterSession > params.ExitFrameCnt) // 上桥40场图像后失效
             {
                 counterRec = 0;
                 counterSession = 0;
@@ -80,14 +96,14 @@ public:
             if (counterRec)
             {
                 counterSession++;
-                if (counterRec >= 4 && counterSession < 8)
+                if (counterRec > params.BridgeCheck && counterSession < params.BridgeCheck + 3)
                 {
                     counterRec = 0;
                     counterSession = 0;
                     bridgeEnable = true; // 检测到桥标志
                     return true;
                 }
-                else if (counterSession >= 8)
+                else if (counterSession >= params.BridgeCheck + 3)
                 {
                     counterRec = 0;
                     counterSession = 0;
@@ -95,6 +111,14 @@ public:
             }
 
             return false;
+        }
+    }
+
+    float get_speed()
+    {
+        if(bridgeEnable)
+        {
+            return params.SpeedUp;
         }
     }
 
@@ -120,7 +144,35 @@ public:
             putText(image, "bridgeEnable", Point(COLSIMAGE / 2 - 10, 20), cv::FONT_HERSHEY_TRIPLEX, 0.3, cv::Scalar(0, 255, 0), 1, CV_AA);
     }
 
+    /**
+     * @brief 加载配置参数Json
+     */
+    void loadParams() 
+    {
+        string jsonPath = "../src/config/bridge.json";
+        std::ifstream config_is(jsonPath);
+        if (!config_is.good()) 
+        {
+            std::cout << "Error: Params file path:[" << jsonPath << "] not find .\n";
+            exit(-1);
+        }
+
+        nlohmann::json js_value;
+        config_is >> js_value;
+
+        try 
+        {
+            params = js_value.get<Params>();
+        }
+        catch (const nlohmann::detail::exception &e) 
+        {
+            std::cerr << "Json Params Parse failed :" << e.what() << '\n';
+            exit(-1);
+        }
+    }
+
 private:
+    Params params;
     uint16_t counterSession = 0; // 图像场次计数器
     uint16_t counterRec = 0;     // 加油站标志检测计数器
     bool bridgeEnable = false;   // 桥区域使能标志

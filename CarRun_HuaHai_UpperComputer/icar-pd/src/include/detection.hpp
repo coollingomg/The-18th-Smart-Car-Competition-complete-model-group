@@ -65,8 +65,18 @@ public:
                 bool flag = false;
                 if(_predictor->results.size() > 0)
                 {
-                    flag = true;
+                    // flag = true;
+                    for(int i = 0; i < _predictor->results.size(); i++)
+                    {
+                        std::string label_name = _predictor->results[i].label;
+                        if(label_name != "cone")
+                        {
+                            flag = true;
+                            break;
+                        }
+                    }
                 }
+
                 if(_Cnt == 0)
                 {
                     AI_Captured = flag;

@@ -1,11 +1,13 @@
 {
     "DepotCheck": 2,
-    "DangerClose": 150,
-    "ServoRow": 50,
-    "ServoValue": 12,
-    "DepotSpeed": 0.7,
+    "DangerClose": 110,
+    "ServoRow": 65,
+    "ServoValue": 10,
+    "DepotSpeed": 0.8,
+    "DepotSpeedScale": 1.0,
+    "DelayCnt": 10,
     "BrakeCnt": 12,
-    "ExitFrameCnt": 15,
+    "ExitFrameCnt": 10,
     "record": [
         {
             "#DepotCheck": "车库确认帧数",
@@ -13,6 +15,8 @@
             "#ServoRow": "入库打角行, 越小打角越早",
             "#ServoValue": "入库打角程度，越小打角越大",
             "#DepotSpeed": "维修区速度",
+            "#DepotSpeedScale": "出维修区时相对于进去时的速度比例",
+            "#DelayCnt": "刚进入维修区延时 等到所有锥桶都能被识别",
             "#BrakeCnt": "智能车刹车反转帧数",
             "#ExitFrameCnt": "出厂延时，补偿智能车刹车打滑"
         }

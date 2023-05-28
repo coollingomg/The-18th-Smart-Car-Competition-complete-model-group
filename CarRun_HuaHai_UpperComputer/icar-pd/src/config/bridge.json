@@ -1,0 +1,12 @@
+{
+    "BridgeCheck": 1,
+    "SpeedUp": 1.2,
+    "ExitFrameCnt": 20,
+    "record": [
+        {
+            "#BridgeCheck": "桥梁确认帧数",
+            "#SpeedUp": "上桥加速",
+            "#ExitFrameCnt": "桥梁区域退出计数"
+        }
+    ]
+}

@@ -57,6 +57,7 @@ int main(int argc, char const *argv[])
 		predict.drawBox(imageAi);
 
 		imshow("AI", imageAi);
+		waitKey(5);
 	}
 	return 0;
 }

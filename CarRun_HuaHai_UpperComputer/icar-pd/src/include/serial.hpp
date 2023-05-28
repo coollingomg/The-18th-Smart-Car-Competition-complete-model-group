@@ -83,7 +83,7 @@ public:
                     _driver->buzzerSound(_sound);
                     _sound = 0;
                 }
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                std::this_thread::sleep_for(std::chrono::milliseconds(8));
 
             }
         });

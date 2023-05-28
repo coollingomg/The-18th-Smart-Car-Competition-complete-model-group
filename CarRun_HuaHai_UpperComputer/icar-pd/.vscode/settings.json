@@ -58,6 +58,8 @@
         "thread": "cpp",
         "typeinfo": "cpp",
         "valarray": "cpp",
-        "optional": "cpp"
+        "optional": "cpp",
+        "codecvt": "cpp",
+        "filesystem": "cpp"
     }
 }

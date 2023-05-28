@@ -4,7 +4,7 @@
 
 using namespace std;
 
-SerialInterface serialInterface("/dev/ttyUSB0", LibSerial::BaudRate::BAUD_115200);
+SerialInterface serialInterface("/dev/ttyUSB0", LibSerial::BaudRate::BAUD_460800);
 int main()
 {
 	int ret = serialInterface.open();

@@ -47,10 +47,14 @@ public:
 	Mat imageBinaryzation(Mat &frame)
 	{
 		Mat imageGray, imageBinary;
-		Mat kernel = getStructuringElement(MORPH_RECT, Size(2, 2));//创建结构元
+		Mat kernel = getStructuringElement(MORPH_RECT, Size(5, 5));//创建结构元
 
-		cvtColor(frame, imageGray, COLOR_BGR2GRAY); // RGB转灰度图
-		morphologyEx(imageGray, imageGray, MORPH_CLOSE, kernel, Point(-1, -1));//闭运算
+        std::vector<cv::Mat> channels;
+        split(frame, channels);
+        cv::Mat redChannel = channels[2];
+
+		// cvtColor(frame, imageGray, COLOR_BGR2GRAY); // RGB转灰度图
+		morphologyEx(redChannel, imageGray, MORPH_CLOSE, kernel, Point(-1, -1));//闭运算
 
 		threshold(imageGray, imageBinary, 0, 255, THRESH_OTSU); // OTSU二值化方法
 

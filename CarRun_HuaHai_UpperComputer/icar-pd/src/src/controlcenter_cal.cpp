@@ -87,6 +87,18 @@ public:
             track.pointsEdgeRight.resize(validRowsRight);
         }
 
+        /****补丁****/
+        // if(track.stdevLeft == 0 && track.stdevRight > 30
+        //     && track.pointsEdgeLeft[0].y == track.pointsEdgeLeft[track.pointsEdgeLeft.size() - 1].y)
+        // {
+        //     track.pointsEdgeLeft.resize(0);
+        // }
+        // else if(track.stdevRight == 0 && track.stdevLeft > 30
+        //     && track.pointsEdgeRight[0].y == track.pointsEdgeRight[track.pointsEdgeRight.size() - 1].y)
+        // {
+        //     track.pointsEdgeRight.resize(0);
+        // }
+
         // 通过双边缘有效点的差来判断赛道类型，使用双段三阶贝塞尔拟合中线
         if (track.pointsEdgeLeft.size() > 45 && track.pointsEdgeRight.size() > 45) 
         {

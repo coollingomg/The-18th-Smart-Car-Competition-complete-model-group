@@ -17,7 +17,7 @@ public:
     CaptureInterface(std::string camera_path = "/dev/video0") 
     : _row(ROWSIMAGE)
     , _col(COLSIMAGE)
-    , _rate(60)
+    , _rate(90)
     {
         _camera_path = camera_path;
     }
@@ -50,6 +50,16 @@ public:
         _cap->set(cv::CAP_PROP_FPS, _rate);
         _cap->set(cv::CAP_PROP_FRAME_WIDTH, _col);
         _cap->set(cv::CAP_PROP_FRAME_HEIGHT, _row);
+        _cap->set(cv::CAP_PROP_ZOOM, 14);
+        {
+            // _cap->set(cv::CAP_PROP_BRIGHTNESS, 28);    //亮度
+            // _cap->set(cv::CAP_PROP_CONTRAST, 50);      //对比度
+            // _cap->set(cv::CAP_PROP_SATURATION, 108);    //饱和度
+            // _cap->set(cv::CAP_PROP_SHARPNESS, 40);     //清晰度
+            // _cap->set(cv::CAP_PROP_GAIN, 100);          //增益
+            _cap->set(cv::CAP_PROP_AUTO_EXPOSURE, 0.20);  //自动曝光开关
+            // _cap->set(cv::CAP_PROP_EXPOSURE, -9);      //曝光级别
+        }
         CheckCap();
 
         _thread = std::make_unique<std::thread>([this](){

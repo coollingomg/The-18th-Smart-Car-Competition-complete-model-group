@@ -24,6 +24,12 @@ using namespace std;
 class DepotDetection
 {
 public:
+	DepotDetection()
+	{
+		loadParams();
+	}
+public:
+
     /**
      * @brief 控制器核心参数
      */
@@ -34,10 +40,12 @@ public:
 		uint16_t ServoRow = 120;
 		uint16_t ServoValue = 15;
 		float DepotSpeed = 0.5;
+		float DepotSpeedScale = 1.0;
+		uint16_t DelayCnt = 3;
 		uint16_t BrakeCnt = 5;
 		uint16_t ExitFrameCnt = 10;
         NLOHMANN_DEFINE_TYPE_INTRUSIVE(
-            Params, DepotCheck, DangerClose, ServoRow, ServoValue, DepotSpeed, BrakeCnt, ExitFrameCnt); // 添加构造函数
+            Params, DepotCheck, DangerClose, ServoRow, ServoValue, DepotSpeed, DepotSpeedScale, DelayCnt, BrakeCnt, ExitFrameCnt); // 添加构造函数
     };
 
 	enum DepotStep
@@ -49,6 +57,17 @@ public:
 		DepotStop,	   // 停车
 		DepotExit	   // 维修厂出站
 	};
+    /**
+     * @brief 环岛类型
+     *
+     */
+    enum DepotType
+    {
+        None = 0, 
+        DepotLeft,     // 左维修区
+        DepotRight     // 右维修区
+    };
+
 
 	/**
 	 * @brief 维修厂检测初始化
@@ -57,6 +76,7 @@ public:
 	void reset(void)
 	{
 		depotStep = DepotStep::DepotNone;
+		depotType = DepotType::None;
 		counterSession = 0;			// 图像场次计数器
 		counterRec = 0;				// 维修厂标志检测计数器
 		counterExit = 0;
@@ -79,47 +99,54 @@ public:
 		switch (depotStep)
 		{
 		case DepotStep::DepotNone: //[01] 维修厂标志检测
-			if (counterImmunity > 30)
+		{
+			for (int i = 0; i < predict.size(); i++)
 			{
-				for (int i = 0; i < predict.size(); i++)
+				if (predict[i].label == LABEL_TRACTOR) // 拖拉机标志检测
 				{
-					if (predict[i].label == LABEL_TRACTOR) // 拖拉机标志检测
-					{
-						counterRec++;
-						break;
-					}
-				}
-				if (counterRec)
-				{
-					counterSession++;
-					if (counterRec > params.DepotCheck && counterSession < params.DepotCheck + 3)
-					{
-						depotStep = DepotStep::DepotEnable; // 维修厂使能
-						counterRec = 0;
-						counterSession = 0;
-					}
-					else if (counterSession >= params.DepotCheck + 3)
-					{
-						counterRec = 0;
-						counterSession = 0;
-					}
+					counterRec++;
+					if(predict[i].y < COLSIMAGE / 2)
+						depotType = DepotType::DepotLeft;
+					else
+						depotType = DepotType::DepotRight;
+					break;
 				}
 			}
-			else
-				counterImmunity++;
+			if (counterRec)
+			{
+				counterSession++;
+				if (counterRec > params.DepotCheck && counterSession < params.DepotCheck + 3)
+				{
+					depotStep = DepotStep::DepotEnable; // 维修厂使能
+					counterRec = 0;
+					counterSession = 0;
+				}
+				else if (counterSession >= params.DepotCheck + 3)
+				{
+					counterRec = 0;
+					counterSession = 0;
+				}
+			}
 			break;
-
+		}
 		case DepotStep::DepotEnable: //[02] 维修厂使能
 		{
-			// counterExit++;
-			// if (counterExit > 60) {
-			//   reset();
-			//   return false;
-			// }
+			counterExit++;
+			if (counterExit > 60) {
+			  reset();
+			  return false;
+			}
+			counterSession++;//刚进入维修区，延时等待知道能看到所有锥桶
 
 			searchCones(predict);
-			_pointNearCone = searchNearestCone(track.pointsEdgeLeft, pointEdgeDet);		 // 搜索右下锥桶
-			if (_pointNearCone.x > params.ServoRow && _pointNearCone.y != 0) // 当车辆开始靠近右边锥桶：准备入库
+
+			if(depotType == DepotType::DepotLeft)
+				_pointNearCone = searchNearestCone(track.pointsEdgeLeft, pointEdgeDet);		 // 搜索右下锥桶
+			else if(depotType == DepotType::DepotRight)
+				_pointNearCone = searchNearestCone(track.pointsEdgeRight, pointEdgeDet);		 // 搜索右下锥桶
+
+			if (_pointNearCone.x > params.ServoRow && _pointNearCone.x < params.ServoRow + ROWSIMAGE / 3
+				&& _pointNearCone.y != 0 && counterSession > params.DelayCnt) // 当车辆开始靠近右边锥桶：准备入库
 			{
 				counterRec++;
 				if (counterRec > 2)
@@ -136,8 +163,9 @@ public:
 		case DepotStep::DepotEnter: //[03] 进站使能
 		{
 			searchCones(predict);
+			_distance = 0;
 			_pointNearCone = searchClosestCone(pointEdgeDet);
-			if(_distance < params.DangerClose)
+			if(_distance < params.DangerClose && _distance > 0)
 			{
 				counterRec++;
 				if(counterRec > 1)
@@ -147,14 +175,24 @@ public:
 				}
 			}
 
-			POINT start = POINT(ROWSIMAGE - 40, COLSIMAGE - 1);
-			POINT end = POINT(ROWSIMAGE / 2 - params.ServoValue, 0);
-			POINT middle = POINT((start.x + end.x) * 0.4, (start.y + end.y) * 0.6);
-			vector<POINT> input = {start, middle, end};
-			track.pointsEdgeRight = Bezier(0.05, input); // 补线
-			track.pointsEdgeLeft =
-				predictEdgeLeft(track.pointsEdgeRight); // 由右边缘补偿左边缘
-
+			if(depotType == DepotType::DepotLeft)
+			{
+				POINT start = POINT(ROWSIMAGE - 40, COLSIMAGE - 1);
+				POINT end = POINT(ROWSIMAGE / 2 - params.ServoValue, 0);
+				POINT middle = POINT((start.x + end.x) * 0.4, (start.y + end.y) * 0.6);
+				vector<POINT> input = {start, middle, end};
+				track.pointsEdgeRight = Bezier(0.05, input); // 补线
+				track.pointsEdgeLeft = predictEdgeLeft(track.pointsEdgeRight); // 由右边缘补偿左边缘
+			}
+			else if(depotType == DepotType::DepotLeft)
+			{
+				POINT start = POINT(ROWSIMAGE - 40, 0);
+				POINT end = POINT(ROWSIMAGE / 2 - params.ServoValue, COLSIMAGE - 1);
+				POINT middle = POINT((start.x + end.x) * 0.4, (start.y + end.y) * 0.6);
+				vector<POINT> input = {start, middle, end};
+				track.pointsEdgeLeft = Bezier(0.05, input); // 补线
+				track.pointsEdgeRight = predictEdgeRight(track.pointsEdgeLeft); // 由右边缘补偿左边缘
+			}
 			pathsEdgeLeft.push_back(track.pointsEdgeLeft); // 记录进厂轨迹
 			pathsEdgeRight.push_back(track.pointsEdgeRight);
 
@@ -279,7 +317,7 @@ public:
 		}
 		case DepotStep::DepotExit:
 		{
-			speed = -params.DepotSpeed * 1.5;
+			speed = -params.DepotSpeed * params.DepotSpeedScale;
 			break;
 		}
 		}
@@ -295,8 +333,7 @@ public:
 		// 绘制锥桶坐标
 		for (int i = 0; i < pointEdgeDet.size(); i++)
 		{
-			circle(image, Point(pointEdgeDet[i].y, pointEdgeDet[i].x), 2,
-				   Scalar(92, 92, 205), -1); // 锥桶坐标：红色
+            putText(image, to_string(i+1), Point(pointEdgeDet[i].y, pointEdgeDet[i].x), cv::FONT_HERSHEY_TRIPLEX, 0.5, cv::Scalar(0, 0, 255), 1, CV_AA);
 		}
 
 		// 赛道边缘
@@ -339,7 +376,7 @@ public:
 				cv::FONT_HERSHEY_TRIPLEX, 0.3, cv::Scalar(0, 255, 0), 1,
 				CV_AA); // 显示锥桶距离
 		if (_pointNearCone.y > 0)
-			circle(image, Point(_pointNearCone.y, _pointNearCone.x), 3,
+			circle(image, Point(_pointNearCone.y, _pointNearCone.x), 5,
 				   Scalar(200, 200, 200), -1);
 
 		putText(image, to_string(indexDebug),
@@ -560,6 +597,7 @@ private:
 	}
 	
 	DepotStep depotStep = DepotStep::DepotNone;
+	DepotType depotType = DepotType::None;
 	Params params;                   // 读取控制参数
 	
 	double _distance = 0;

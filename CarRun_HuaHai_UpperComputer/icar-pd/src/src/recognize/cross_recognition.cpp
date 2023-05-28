@@ -37,6 +37,7 @@ public:
     void reset(void)
     {
         crossroadType = CrossroadType::None; // 十字道路类型
+        counterFild = 0;
     }
 
     /**
@@ -57,6 +58,12 @@ public:
         uint16_t counterRec = 0;    // 计数器
         uint16_t counterLinear = 0; // 连续计数器
         _index = 0;
+
+        if(counterFild < 30)
+        {
+            counterFild++;//出库屏蔽计数器
+            return false;
+        }
 
         if (track.pointsEdgeRight.size() < ROWSIMAGE / 2 || track.pointsEdgeLeft.size() < ROWSIMAGE / 2) // 十字有效行限制
             return false;
@@ -81,7 +88,7 @@ public:
                         counterLinear = 0;
                         counterRec = 0;
                     }
-                    if (counterRec > 5)
+                    if (counterRec > 4)
                     {
                         crossroadType = CrossroadType::CrossroadLeft; // 左入十字
                         _index = 2;
@@ -212,7 +219,7 @@ public:
                         counterLinear = 0;
                         counterRec = 0;
                     }
-                    if (counterRec > 5)
+                    if (counterRec > 4)
                     {
                         crossroadType = CrossroadType::CrossroadRight; // 右入十字
                         _index = 2;
