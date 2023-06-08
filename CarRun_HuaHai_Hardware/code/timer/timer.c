@@ -12,6 +12,7 @@
 #include "Buzzer/buzzer.h"
 #include "servo/servo.h"
 #include "voltage_sampling/voltage_sampling.h"
+#include "icm20602_data_handle.h"
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介       定时中断初始化
@@ -50,6 +51,8 @@ void timer_interrupt(void)
     ICAR_Timer();
     //电压采样线程
     adc_Timer();
+//    //姿态角解算
+//    icm20602_attitude_Angle_pose();
 //    //舵机线程控制
 //    SERVO_Timer();
 }

@@ -9,7 +9,6 @@
 #define CODE_ICM20602_DATA_HANDLE_H_
 
 //包含头文件
-#include "pose.h"                           //姿态角解算
 #include "zf_device_icm20602.h"             //陀螺仪bsp层头文件
 
 
@@ -39,7 +38,7 @@ extern Gyroscope_g_and_a_data Gyroscope_g_and_a_data_get;
 
 //==================================================ICM20602_DATA_HANDLE 基础函数==================================================
 void icm20602_pose_init(void);                                          //姿态角解算初始化
-void icm20602_attitude_Angle_pose(Pose_Module *pose, float cycle);      //姿态角解算
+void icm20602_attitude_Angle_pose(void);                                //姿态角解算
 //==================================================ICM20602_DATA_HANDLE 基础函数==================================================
 
 #endif /* CODE_ICM20602_DATA_HANDLE_H_ */
