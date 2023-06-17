@@ -19,6 +19,7 @@
 #include "uart.h"
 
 
+
 //----------------------------------代码区域----------------------------------
 int core0_main(void)
 {
@@ -37,17 +38,9 @@ int core0_main(void)
     timer_Init();
     //蜂鸣器初始化
     Buzzer_Init();
-
-//选择通信初始化
-#if USING_BLUETOOTH_OR_EGBOARD
-    //使用蓝牙通信
-    my_uart_init(bluetooth_using_uart, bluetooth_using_uart_baud, uart_booluteeth_pin_tx, uart_booluteeth_pin_rx);
-#else
     //与eb通信初始化
-    my_uart_init(eb_using_uart, eb_using_uart_baud, uart_eb_pin_tx, uart_eb_pin_rx);
-#endif
-
-   //通信连接提示灯初始化
+    USB_uart_init(eb_using_uart, eb_using_uart_baud, uart_eb_pin_tx, uart_eb_pin_rx);
+    //通信连接提示灯初始化
     gpio_init(P20_9, GPO, 1, GPO_PUSH_PULL);
     //初始化完成后，拉高电平唤醒电机驱动板
     gpio_init(P21_3, GPO, 1, GPO_PUSH_PULL);
@@ -55,6 +48,7 @@ int core0_main(void)
     gpio_init(P21_5, GPO, 1, GPO_PUSH_PULL);
     //卡尔曼参数初始化
     Kalman_Filter_Init(&kalman_struck);
+    Kalman_Filter_Init(&kalman_struck1);
     //智能车控制参数初始化
     ICAR_Init();
     //初始化完成，蜂鸣器提示音
@@ -67,17 +61,11 @@ int core0_main(void)
     {
 
 //----------------------------------此处编写需要循环执行的代码----------------------------------
-#if USING_BLUETOOTH_OR_EGBOARD
-        //蓝牙串口发送数据
-        Bluetooth_Send("%f,%f,%f",Bluetooth_data.data_angle, Bluetooth_data.data_speed, icarStr.SpeedFeedback);
-        //蓝牙数据处理
-        use_bluetooth_Handle();
-#else
+
         //数据处理
         USB_Edgeboard_Handle();
         //flash任务处理
         my_flash_Handle();
-#endif
         //蜂鸣器控制
         Buzzer_Handle();
         //智能车控制

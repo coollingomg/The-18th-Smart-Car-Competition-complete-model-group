@@ -29,7 +29,6 @@
     <stringAttribute key="debugger_configuration.gdi.resource.Frequency" value="5000000"/>
     <stringAttribute key="debugger_configuration.gdi.resource.TerminateServer" value="1"/>
     <stringAttribute key="debugger_configuration.gdi.resource.gdi2mcd.reset.class_vector" value="0x4"/>
-    <stringAttribute key="debugger_configuration.gdi.resource.user.ConnectedServerName" value="DAS JDS TriBoard TC2XX V2.0 TB6SZIBS"/>
     <stringAttribute key="debugger_configuration.general.kdi_orti_file" value=""/>
     <stringAttribute key="debugger_configuration.general.ksm_sharedlib" value=""/>
     <stringAttribute key="debugger_configuration.goto_label" value="core0_main"/>
@@ -46,4 +45,6 @@
     <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_TYPES">
         <listEntry value="4"/>
     </listAttribute>
+    <stringAttribute key="org.eclipse.debug.core.source_locator_id" value="org.eclipse.cdt.debug.core.sourceLocator"/>
+    <stringAttribute key="org.eclipse.debug.core.source_locator_memento" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; standalone=&quot;no&quot;?&gt;&#13;&#10;&lt;sourceLookupDirector&gt;&#13;&#10;    &lt;sourceContainers duplicates=&quot;true&quot;&gt;&#13;&#10;        &lt;container memento=&quot;&amp;lt;?xml version=&amp;quot;1.0&amp;quot; encoding=&amp;quot;UTF-8&amp;quot; standalone=&amp;quot;no&amp;quot;?&amp;gt;&amp;#13;&amp;#10;&amp;lt;default/&amp;gt;&amp;#13;&amp;#10;&quot; typeId=&quot;org.eclipse.debug.core.containerType.default&quot;/&gt;&#13;&#10;    &lt;/sourceContainers&gt;&#13;&#10;&lt;/sourceLookupDirector&gt;&#13;&#10;"/>
 </launchConfiguration>

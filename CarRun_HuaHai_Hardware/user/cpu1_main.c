@@ -3,14 +3,15 @@
 // 将本语句与#pragma section all restore语句之间的全局变量都放在CPU1的RAM中
 
 //包含头文件
+#include "icm20602_data_pose/icm20602_data_handle.h"
 #include "voltage_sampling/voltage_sampling.h"
+#include "car_control/car_control.h"
 #include "icm20602_data_handle.h"
 #include "motor/motor.h"
 #include "servo/servo.h"
 #include "key/key.h"
 #include "uart.h"
 #include "pid.h"
-
 
 
 //-----------------------------------代码区域-----------------------------------
@@ -27,7 +28,8 @@ void core1_main(void)
     adc_Init();
     //按键初始化
     my_key_init();
-
+    //调试蓝牙接口
+    BLUETOOTH_uart_init(bluetooth_using_uart, bluetooth_using_uart_baud, uart_booluteeth_pin_tx, uart_booluteeth_pin_rx);
 
 //-----------------------------------此处编写用户代码 例如外设初始化代码等-----------------------------------
 
@@ -37,19 +39,14 @@ void core1_main(void)
 
 //-----------------------------------此处编写需要循环执行的代码-----------------------------------
 
-//选择通信模式
-#if USING_BLUETOOTH_OR_EGBOARD
-//        //舵机转向控制
-//        servo_contral(Bluetooth_data.data_angle);
-#else
-#endif
-
-//        //舵机转向控制线程处理函数
-//        SERVO_Handle();
-//        //陀螺仪姿态角解算更新
-//        icm20602_attitude_Angle_pose(&icm20602_pose, 0.001);
+        //蓝牙串口发送数据处理
+        Wireless_Handle();
+//        //姿态角解算处理函数
+//        icm20602_attitude_Angle_handle();
         //电压采样处理
         adc_Handle();
+        //姿态角解算处理函数
+        icm20602_attitude_Angle_handle();
 
 //-----------------------------------此处编写需要循环执行的代码-----------------------------------
 

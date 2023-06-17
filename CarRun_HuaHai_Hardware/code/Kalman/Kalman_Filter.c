@@ -3,6 +3,7 @@
 
 //定义卡尔曼结构体参数
 KalmanInfo kalman_struck;
+KalmanInfo kalman_struck1;
 
 //初始化卡尔曼滤波结构体
 void Kalman_Filter_Init(KalmanInfo *KalmanInfo_Structure)
@@ -35,3 +36,5 @@ float Kalman_Filter_Fun(KalmanInfo *info, float new_value)
     info->LastP = (1-info->Kg) * info->Now_P;
     return info->out;
 }
+
+

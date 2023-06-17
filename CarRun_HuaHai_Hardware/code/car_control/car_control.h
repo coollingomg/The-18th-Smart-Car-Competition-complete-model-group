@@ -36,6 +36,7 @@ typedef struct
     float  Voltage;                           //电池电压
     uint8  Electricity;                       //电池电量百分比：0~100
     float  SpeedSet;                          //电机目标速度：m/s
+    float  speed_set;                         //滤波后的目标速度：m/s
     float  SpeedFeedback;                     //电机模型实测速度：m/s
     float  SpeedMaxRecords;                   //测试记录最高速
     uint16 ServoPwmSet;                       //舵机PWM设置

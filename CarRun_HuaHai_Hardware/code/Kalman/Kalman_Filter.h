@@ -14,6 +14,7 @@ typedef struct
 
 //声明卡尔曼结构体参数
 extern KalmanInfo kalman_struck;
+extern KalmanInfo kalman_struck1;
 
 void  Kalman_Filter_Init(KalmanInfo *KalmanInfo_Structure);
 float Kalman_Filter_Fun(KalmanInfo *info, float new_value);

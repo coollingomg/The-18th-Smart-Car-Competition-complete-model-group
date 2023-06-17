@@ -55,13 +55,7 @@ extern MotorStruct motorStr;
 //====================================================MOTOR 基础函数====================================================
 void motor_init                 (void);
 void motor_SetPwmValue          (int16_t pwm);
-
-#if USING_BLUETOOTH_OR_EGBOARD
-void motor_ControlLoop          (float speed);
-#else
 void motor_ControlLoop          (void);
-#endif
-
 //====================================================MOTOR 基础函数====================================================
 
 

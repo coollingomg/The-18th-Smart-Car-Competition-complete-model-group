@@ -9,7 +9,7 @@
 #include "uart/uart.h"
 #include "pid.h"
 #include "Buzzer/buzzer.h"
-
+#include "Kalman_Filter.h"
 
 //定义电机运动结构体参数
 MotorStruct motorStr;
@@ -100,53 +100,13 @@ void motor_SetPwmValue(int16 pwm)
 // 参数说明     float speed     输入设定的速度值
 // 返回参数     void
 //-------------------------------------------------------------------------------------------------------------------
-#if USING_BLUETOOTH_OR_EGBOARD
-void motor_ControlLoop(float set_speed)
-{
-    //线程控制，每1ms进入一次该函数
-    motorStr.Counter++;
-    //每10ms对电机速度进行控制
-    if(motorStr.Counter >= 10)
-    {
-        //获取当前编码器的值
-        motorStr.EncoderValue = encoder_get_count(USING_TIMER);
-        //清空定时器的值
-        encoder_clear_count(USING_TIMER);
-        //获取实际速度；计算公式：定时器计数值/4倍频/编码器线数/电机的减速比/循环时间*pi*车轮直径
-        icarStr.SpeedFeedback = (float)(motorStr.EncoderValue * PI_MOTOR * motorStr.DiameterWheel)/ MOTOR_CONTROL_CYCLE / motorStr.EncoderLine / 4.0f / motorStr.ReductionRatio;
-
-        //定义给定pwm值
-        static int16 speed_to_pwm = 0;
-
-        //闭环
-        if(Bluetooth_data.data_choice)
-        {
-            //pid计算，并赋值给pwm
-            PID_Calc(&car_speed_pid, icarStr.SpeedFeedback, set_speed);
-            speed_to_pwm = (int16)car_speed_pid.out;
-            //赋值pwm
-            motor_SetPwmValue(speed_to_pwm);
-        }
-        else
-        {
-            //开环
-            speed_to_pwm = (int16)(10000.0f / 10.0f * set_speed);
-            //赋值pwm
-            motor_SetPwmValue(speed_to_pwm);
-        }
-
-        //清空线程
-        motorStr.Counter = 0;
-    }
-}
-#else
 void motor_ControlLoop(void)
 {
     //定义给定pwm值
     static int16 speed_to_pwm = 0;
     //线程控制，每1ms进入一次该函数
     motorStr.Counter++;
-    //每10ms对电机速度进行控制
+    //每3ms对电机速度进行控制
     if(motorStr.Counter >= 3)
     {
         //获取当前编码器的值
@@ -154,7 +114,8 @@ void motor_ControlLoop(void)
         //清空定时器的值
         encoder_clear_count(USING_TIMER);
         //获取实际速度；计算公式：定时器计数值/4倍频/编码器线数/电机的减速比/循环时间*轮子半径*PI
-        icarStr.SpeedFeedback = (float)(motorStr.EncoderValue * motorStr.DiameterWheel * PI_MOTOR)/ MOTOR_CONTROL_CYCLE / motorStr.EncoderLine / 4.0f / motorStr.ReductionRatio;
+        float temp_speed = (float)(motorStr.EncoderValue * motorStr.DiameterWheel * PI_MOTOR)/ MOTOR_CONTROL_CYCLE / motorStr.EncoderLine / 4.0f / motorStr.ReductionRatio;
+        icarStr.SpeedFeedback = Kalman_Filter_Fun(&kalman_struck, temp_speed);
 
         //通信连接才开启闭环（保护+省电）
         if(usbStr.connected)
@@ -163,8 +124,9 @@ void motor_ControlLoop(void)
             if(motorStr.CloseLoop)
             {
                 //pid计算，并赋值给pwm
+                //icarStr.speed_set = Kalman_Filter_Fun(&kalman_struck1, icarStr.SpeedSet);
                 PID_Calc(&car_speed_pid, icarStr.SpeedFeedback, icarStr.SpeedSet);
-                speed_to_pwm = (int16)car_speed_pid.out;
+                speed_to_pwm = (int16)(car_speed_pid.out + usbStr.recevie_k * icarStr.SpeedFeedback);
                 //赋值pwm
                 motor_SetPwmValue(speed_to_pwm);
             }
@@ -194,4 +156,4 @@ void motor_ControlLoop(void)
         motorStr.Counter = 0;
     }
 }
-#endif
+

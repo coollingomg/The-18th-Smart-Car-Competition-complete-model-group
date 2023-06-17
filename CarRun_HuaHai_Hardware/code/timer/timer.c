@@ -34,29 +34,20 @@ void timer_Init(void)
 void timer_interrupt(void)
 {
     //电机控制线程
-#if USING_BLUETOOTH_OR_EGBOARD
-    motor_ControlLoop(Bluetooth_data.data_speed);
-#else
     motor_ControlLoop();
-#endif
-
     //eb通讯掉线检测
-#if !USING_BLUETOOTH_OR_EGBOARD
     USB_Edgeboard_Timr();
-#endif
-
+    //无线发送线程
+    Wireless_Timer();
     //蜂鸣器外设线程
     Buzzer_Timer();
     //智能车综合处理线程计数器
     ICAR_Timer();
     //电压采样线程
     adc_Timer();
-//    //姿态角解算
-//    icm20602_attitude_Angle_pose();
-//    //舵机线程控制
-//    SERVO_Timer();
+    //姿态角解算线程
+    icm20602_attitude_Angle_Timer();
 }
-
 
 IFX_INTERRUPT(cc61_pit_ch0_isr, 0, CCU6_1_CH0_ISR_PRIORITY)
 {
@@ -66,3 +57,4 @@ IFX_INTERRUPT(cc61_pit_ch0_isr, 0, CCU6_1_CH0_ISR_PRIORITY)
     //中断服务函数
     timer_interrupt();
 }
+
