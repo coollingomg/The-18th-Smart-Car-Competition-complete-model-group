@@ -161,6 +161,12 @@ public:
                         _index = 3;
                     }
                 }
+                else if(abs(pointBreakRD.y - track.pointsEdgeRight[rowBreakRightDown - 5].y) > 3)
+                {
+                    track.pointsEdgeLeft.resize(rowBreakRightDown);
+                    track.pointsEdgeRight.resize(rowBreakRightDown);
+                }
+
 
                 // if (!repaired && pointBreakRD.y < COLSIMAGE / 2) //[Step-2] 未搜索到岔路
                 // {
@@ -292,6 +298,11 @@ public:
                         _index = 3;
                     }
                 }
+                else if(abs(pointBreakLD.y - track.pointsEdgeLeft[rowBreakLeftDown - 5].y) > 3)
+                {
+                    track.pointsEdgeLeft.resize(rowBreakLeftDown);
+                    track.pointsEdgeRight.resize(rowBreakLeftDown);
+                }
 
                 // if (!repaired && pointBreakRD.y < COLSIMAGE / 2) //[Step-2] 未搜索到岔路
                 // {
@@ -346,7 +357,8 @@ public:
             for (int i = 2; i < track.widthBlock.size() - 10; i++)
             {
                 // 直入十字判断
-                if (track.spurroad.size() > 0 && track.widthBlock[i].y > COLSIMAGE - 5)
+                if (track.spurroad.size() > 0 && track.widthBlock[i].y > COLSIMAGE - 5 
+                    && track.stdevLeft > 65 && track.stdevRight > 65)
                 {
                     counterStrightA++;
                 }

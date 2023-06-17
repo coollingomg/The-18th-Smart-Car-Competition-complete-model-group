@@ -57,7 +57,7 @@ public:
             // _cap->set(cv::CAP_PROP_SATURATION, 108);    //饱和度
             // _cap->set(cv::CAP_PROP_SHARPNESS, 40);     //清晰度
             // _cap->set(cv::CAP_PROP_GAIN, 100);          //增益
-            _cap->set(cv::CAP_PROP_AUTO_EXPOSURE, 0.20);  //自动曝光开关
+            _cap->set(cv::CAP_PROP_AUTO_EXPOSURE, 0.12);  //自动曝光开关
             // _cap->set(cv::CAP_PROP_EXPOSURE, -9);      //曝光级别
         }
         CheckCap();

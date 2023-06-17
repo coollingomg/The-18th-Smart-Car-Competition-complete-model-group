@@ -91,7 +91,9 @@ public:
             validRowsRight = 0;                  // 边缘有效行数（右）
             flagStartBlock = true;               // 搜索到色块起始行的标志（行）
             garageEnable = POINT(0, 0);          // 车库识别标志初始化
-            rowStart = ROWSIMAGE - rowCutBottom; // 默认底部起始行
+            if(rowStart < rowCutBottom)
+                rowStart = rowCutBottom;
+            rowStart = ROWSIMAGE - rowStart; // 默认底部起始行
         }
         else
         {
@@ -375,10 +377,10 @@ public:
      *
      * @param imageBinary 赛道识别基准图像
      */
-    void trackRecognition(Mat &imageBinary)
+    void trackRecognition(Mat &imageBinary, uint16_t rowStart)
     {
         imagePath = imageBinary;
-        trackRecognition(false, 0);
+        trackRecognition(false, rowStart);
     }
 
     /**
@@ -403,6 +405,10 @@ public:
         {
             circle(trackImage, Point(spurroad[i].y, spurroad[i].x), 3,
                    Scalar(0, 0, 255), -1); // 红色点
+        }
+        if(garageEnable.x)
+        {
+            line(trackImage, Point(0, garageEnable.y), Point(trackImage.cols - 1, garageEnable.y), Scalar(211, 211, 211), 1);
         }
 
         putText(trackImage, to_string(validRowsRight) + " " + to_string(stdevRight), Point(COLSIMAGE - 100, ROWSIMAGE - 50),

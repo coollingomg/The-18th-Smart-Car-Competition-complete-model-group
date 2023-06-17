@@ -36,6 +36,7 @@ public:
     struct Params 
     {
 		uint16_t DepotCheck = 3;
+		uint16_t DepotDir = 0;
 		double DangerClose = 100.0;       // 智能车危险距离
 		uint16_t ServoRow = 120;
 		uint16_t ServoValue = 15;
@@ -45,7 +46,7 @@ public:
 		uint16_t BrakeCnt = 5;
 		uint16_t ExitFrameCnt = 10;
         NLOHMANN_DEFINE_TYPE_INTRUSIVE(
-            Params, DepotCheck, DangerClose, ServoRow, ServoValue, DepotSpeed, DepotSpeedScale, DelayCnt, BrakeCnt, ExitFrameCnt); // 添加构造函数
+            Params, DepotCheck, DepotDir, DangerClose, ServoRow, ServoValue, DepotSpeed, DepotSpeedScale, DelayCnt, BrakeCnt, ExitFrameCnt); // 添加构造函数
     };
 
 	enum DepotStep
@@ -81,6 +82,7 @@ public:
 		counterRec = 0;				// 维修厂标志检测计数器
 		counterExit = 0;
 		counterImmunity = 0;
+		_speed = 0.0f;
 	}
 
 	/**
@@ -96,19 +98,21 @@ public:
 		pointEdgeDet.clear();
 		indexDebug = 0;
 
+		if(counterImmunity < 30)
+		{
+			counterImmunity++;
+			return false;
+		}
+
 		switch (depotStep)
 		{
 		case DepotStep::DepotNone: //[01] 维修厂标志检测
 		{
 			for (int i = 0; i < predict.size(); i++)
 			{
-				if (predict[i].label == LABEL_TRACTOR) // 拖拉机标志检测
+				if (predict[i].label == LABEL_TRACTOR && predict[i].y + predict[i].height > 60) // 拖拉机标志检测
 				{
 					counterRec++;
-					if(predict[i].y < COLSIMAGE / 2)
-						depotType = DepotType::DepotLeft;
-					else
-						depotType = DepotType::DepotRight;
 					break;
 				}
 			}
@@ -117,6 +121,10 @@ public:
 				counterSession++;
 				if (counterRec > params.DepotCheck && counterSession < params.DepotCheck + 3)
 				{
+					if(params.DepotDir == 0)
+						depotType = DepotType::DepotLeft;
+					else if(params.DepotDir == 1)
+						depotType = DepotType::DepotRight;
 					depotStep = DepotStep::DepotEnable; // 维修厂使能
 					counterRec = 0;
 					counterSession = 0;
@@ -184,7 +192,7 @@ public:
 				track.pointsEdgeRight = Bezier(0.05, input); // 补线
 				track.pointsEdgeLeft = predictEdgeLeft(track.pointsEdgeRight); // 由右边缘补偿左边缘
 			}
-			else if(depotType == DepotType::DepotLeft)
+			else if(depotType == DepotType::DepotRight)
 			{
 				POINT start = POINT(ROWSIMAGE - 40, 0);
 				POINT end = POINT(ROWSIMAGE / 2 - params.ServoValue, COLSIMAGE - 1);
@@ -242,13 +250,13 @@ public:
 			{
 				track.pointsEdgeLeft = pathsEdgeLeft[pathsEdgeLeft.size() - 1];
 				track.pointsEdgeRight = pathsEdgeRight[pathsEdgeRight.size() - 1];
+				if(counterRec > params.ExitFrameCnt)
+				{
+					pathsEdgeLeft.pop_back();
+					pathsEdgeRight.pop_back();
+				}
 			}
 			
-			if(counterRec > params.ExitFrameCnt)
-			{
-				pathsEdgeLeft.pop_back();
-				pathsEdgeRight.pop_back();
-			}
 			break;
 		}
 		}
@@ -292,36 +300,41 @@ public:
 	 */
 	float get_speed()
 	{
-		float speed = 0.0f;
 		switch(depotStep)
 		{
 		case DepotStep::DepotEnable:
 		{
-			speed = params.DepotSpeed;
+			_speed += 0.05f;
+			if(_speed > params.DepotSpeed)
+				_speed = params.DepotSpeed;
 			break;
 		}
 		case DepotStep::DepotEnter:
 		{
-			speed = params.DepotSpeed;
+			_speed += 0.05f;
+			if(_speed > params.DepotSpeed)
+				_speed = params.DepotSpeed;
 			break;
 		}
 		case DepotStep::DepotCruise:
 		{
-			speed = -params.DepotSpeed;
+			_speed -= 0.2f;
+			if(_speed < -params.DepotSpeed)
+				_speed = -params.DepotSpeed;
 			break;
 		}
 		case DepotStep::DepotStop:
 		{
-			speed = 0.0f;
+			_speed = 0.0f;
 			break;
 		}
 		case DepotStep::DepotExit:
 		{
-			speed = -params.DepotSpeed * params.DepotSpeedScale;
+			_speed = -params.DepotSpeed * params.DepotSpeedScale;
 			break;
 		}
 		}
-		return speed;
+		return _speed;
 	}
 
 	/**
@@ -369,7 +382,11 @@ public:
 			state = "DepotExit";
 			break;
 		}
-		putText(image, state, Point(COLSIMAGE / 2 - 10, 20),
+		if(depotType == DepotType::DepotLeft)
+			state += " Left";
+		if(depotType == DepotType::DepotRight)
+			state += " Right";
+		putText(image, state, Point(COLSIMAGE / 2 - 20, 20),
 				cv::FONT_HERSHEY_TRIPLEX, 0.3, cv::Scalar(0, 255, 0), 1, CV_AA);
 
 		putText(image, to_string(_distance), Point(COLSIMAGE / 2 - 15, 40),
@@ -603,6 +620,7 @@ private:
 	double _distance = 0;
 	POINT _pointNearCone;
 	vector<POINT> pointEdgeDet; // AI元素检测边缘点集
+	float _speed = 0.0f;
 
 	vector<vector<POINT>> pathsEdgeLeft; // 记录入库路径
 	vector<vector<POINT>> pathsEdgeRight;

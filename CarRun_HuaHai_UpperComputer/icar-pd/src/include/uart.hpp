@@ -304,16 +304,84 @@ public:
     }
   }
 
+    /**
+     * @brief 串口接收下位机比赛开始信号
+     *
+     */
+    bool receiveStartSignal(void)
+    {
+        uint8_t resByte;
+        int ret = 0;
+
+        ret = recvdata(resByte, 3000);
+        if (ret == 0)
+        {
+            if (resByte == UsbFrameHead && !usb_Struct.receiveStart) // 帧头检测
+            {
+                usb_Struct.receiveStart = true;
+                usb_Struct.receiveBuff[0] = resByte;
+                usb_Struct.receiveBuff[2] = UsbFrameLengthMin;
+                usb_Struct.receiveIndex = 1;
+            }
+            else if (usb_Struct.receiveIndex == 2) // 数据长度
+            {
+                usb_Struct.receiveBuff[usb_Struct.receiveIndex] = resByte;
+                usb_Struct.receiveIndex++;
+
+                if (resByte > UsbFrameLengthMax || resByte < UsbFrameLengthMin) // 帧长校验
+                {
+                    usb_Struct.receiveBuff[2] = UsbFrameLengthMin;
+                    usb_Struct.receiveIndex = 0;
+                    usb_Struct.receiveStart = false;
+                }
+            }
+            else if (usb_Struct.receiveStart && usb_Struct.receiveIndex < UsbFrameLengthMax)
+            {
+                usb_Struct.receiveBuff[usb_Struct.receiveIndex] = resByte;
+                usb_Struct.receiveIndex++;
+            }
+
+            // 帧接收完毕
+            if ((usb_Struct.receiveIndex >= UsbFrameLengthMax || usb_Struct.receiveIndex >= usb_Struct.receiveBuff[2]) && usb_Struct.receiveIndex > UsbFrameLengthMin)
+            {
+                uint8_t check = 0;
+                uint8_t length = UsbFrameLengthMin;
+
+                length = usb_Struct.receiveBuff[2];
+                for (int i = 0; i < length - 1; i++)
+                    check += usb_Struct.receiveBuff[i];
+
+                if (check == usb_Struct.receiveBuff[length - 1]) // 校验位
+                {
+                    memcpy(usb_Struct.receiveBuffFinished, usb_Struct.receiveBuff, UsbFrameLengthMax);
+                    usb_Struct.receiveFinished = true;
+
+                    // 任务开始指令
+                    if (0x06 == usb_Struct.receiveBuffFinished[1])
+                    {
+                        return true;
+                    }
+                }
+
+                usb_Struct.receiveIndex = 0;
+                usb_Struct.receiveStart = false;
+            }
+        }
+
+        return false;
+    }
+
+
   /**
    * @brief 串口接收下位机信号
    *
    */
-  uint8_t receiveStartSignal(void)
+  uint8_t receiveData(void)
   {
     uint8_t resByte;
     int ret = 0;
 
-    ret = recvdata(resByte, 300);
+    ret = recvdata(resByte, 30);
     if (ret == 0)
     {
       if (resByte == UsbFrameHead && !usb_Struct.receiveStart) // 帧头检测
@@ -361,12 +429,11 @@ public:
           memcpy(usb_Struct.receiveBuffFinished, usb_Struct.receiveBuff,
                  UsbFrameLengthMax);
           usb_Struct.receiveFinished = true;
-
+          return usb_Struct.receiveBuffFinished[1];
         }
 
         usb_Struct.receiveIndex = 0;
         usb_Struct.receiveStart = false;
-        return usb_Struct.receiveBuffFinished[1];
       }
     }
 

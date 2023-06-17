@@ -36,8 +36,10 @@ public:
      */
     void reset(void)
     {
+        _speed = 0.0f;
         counterRec = 0;
         counterSession = 0;
+        counterFild = 0;
         farmlandStep = FarmlandStep::None;
     }
     
@@ -49,6 +51,12 @@ public:
      */
     bool farmlandAvoid(TrackRecognition &track, vector<PredictResult> predict, cv::Mat frame)
     {
+        if(counterFild < 30)
+        {
+            counterFild++;//屏蔽计数器
+            return false;
+        }
+
         switch(farmlandStep)
         {
         case FarmlandStep::None:
@@ -109,20 +117,19 @@ public:
         {
             searchCorn(predict);
             if ((track.pointsEdgeLeft.size() > 80 || track.pointsEdgeRight.size() > 80) && pointCorn.x == 0 &&
-                counterSession && (track.pointsEdgeLeft[10].x > COLSIMAGE / 2 || track.pointsEdgeRight[10].x > COLSIMAGE / 2))
+                counterSession > 1 && (track.pointsEdgeLeft[10].x > COLSIMAGE / 2 || track.pointsEdgeRight[10].x > COLSIMAGE / 2))
             {
                 counterRec++;
-                if(counterRec > 5)
+                if(counterRec > 3)
                 {
-                    counterSession = 0;
-                    counterRec = 0;
                     farmlandStep = FarmlandStep::None; // 出农田
+                    reset();
                 }
             }
 
             searchCones(predict);
             pointsSortForX(pointEdgeDet);
-            if(pointEdgeDet[0].x > COLSIMAGE /2)
+            if(pointEdgeDet[0].x > ROWSIMAGE / 2)
             {
                 counterSession++;
             }
@@ -131,7 +138,7 @@ public:
             threshold(_imageGray, _imageBinary, 0, 255, THRESH_OTSU);
 
             track.reset();
-            track.trackRecognition(_imageBinary);
+            track.trackRecognition(_imageBinary, 0);
             movingAverageFilter(track.pointsEdgeLeft, 10);
             movingAverageFilter(track.pointsEdgeRight, 10);
             line_extend(track.pointsEdgeLeft);
@@ -245,21 +252,24 @@ public:
 
     float get_speed()
     {
-        float speed = 0.0f;
         switch(farmlandStep)
         {
         case FarmlandStep::Enable:
         {
-            speed = params.Speed; 
+            _speed += 0.04f;
+            if(_speed > params.Speed)
+                _speed = params.Speed; 
             break;
         }
         case FarmlandStep::Cruise:
         {
-            speed = params.Speed * params.SpeedScale; 
+            _speed += 0.08f;
+            if(_speed > params.Speed * params.SpeedScale)
+                _speed = params.Speed * params.SpeedScale; 
             break;
         }
         }
-        return speed;
+        return _speed;
     }
 
 
@@ -430,6 +440,8 @@ private:
     POINT pointAverage = POINT(0, 0);  // 玉米检测坐标
     uint16_t counterSession = 0;       // 图像场次计数器
     uint16_t counterRec = 0;           // 农田区标志检测计数器
+    uint16_t counterFild = 0;
+    float _speed = 0.0f;
     int indexDebug = 0;
     enum FarmlandStep
     {

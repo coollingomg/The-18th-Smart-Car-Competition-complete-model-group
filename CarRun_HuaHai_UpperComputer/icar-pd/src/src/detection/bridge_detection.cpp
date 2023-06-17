@@ -1,21 +1,10 @@
 #pragma once
 /**
-********************************************************************************************************
-*                                               示例代码
-*                                             EXAMPLE  CODE
-*
-*                      (c) Copyright 2021; SaiShu.Lcc.; Leo; https://bjsstech.com
-*                                   版权所属[SASU-北京赛曙科技有限公司]
-*
-*            The code is for internal use only, not for commercial transactions(开源学习,请勿商用).
-*            The code ADAPTS the corresponding hardware circuit board(代码适配百度Edgeboard-FZ3B),
-*            The specific details consult the professional(欢迎联系我们,代码持续更正，敬请关注相关开源渠道).
-*********************************************************************************************************
 * @file slope_detection.cpp
-* @author Leo ()
+* @author Pxx
 * @brief 坡道（桥）路径处理
 * @version 0.1
-* @date 2022-06-26
+* @date 2023-06-03
 *
 * @copyright Copyright (c) 2022
 *
@@ -46,10 +35,11 @@ public:
     struct Params 
     {
         uint16_t BridgeCheck = 3;
+        uint16_t rowCheck = 90;
         float SpeedUp = 1.0;
         uint16_t ExitFrameCnt = 30;
         NLOHMANN_DEFINE_TYPE_INTRUSIVE(
-            Params, BridgeCheck, SpeedUp, ExitFrameCnt); // 添加构造函数
+            Params, BridgeCheck, rowCheck, SpeedUp, ExitFrameCnt); // 添加构造函数
     };
 
     /**
@@ -60,33 +50,22 @@ public:
     {
         counterSession = 0;   // 图像场次计数器
         counterRec = 0;       // 加油站标志检测计数器
-        bridgeEnable = false; // 桥区域使能标志
+        _bridgeEnable = false; // 桥区域使能标志
+        counterFild = 0;
     }
 
-    bool bridgeDetection(TrackRecognition &track, vector<PredictResult> predict)
+    void bridgeCheck(vector<PredictResult> predict)
     {
-        if (bridgeEnable) // 进入桥梁
+        if(counterFild < 30)
         {
-            if (track.pointsEdgeLeft.size() > ROWSIMAGE / 2 && track.pointsEdgeRight.size() > ROWSIMAGE / 2) // 切行，防止错误前瞻引发转向
-            {
-                track.pointsEdgeLeft.resize(track.pointsEdgeLeft.size() / 2);
-                track.pointsEdgeRight.resize(track.pointsEdgeRight.size() / 2);
-            }
-            counterSession++;
-            if (counterSession > params.ExitFrameCnt) // 上桥40场图像后失效
-            {
-                counterRec = 0;
-                counterSession = 0;
-                bridgeEnable = false;
-            }
-
-            return true;
+            counterFild++;//屏蔽计数器
+            return;
         }
-        else // 检测桥
+        if(!_bridgeEnable)
         {
             for (int i = 0; i < predict.size(); i++)
             {
-                if (predict[i].label == LABEL_BRIDGE)
+                if (predict[i].label == LABEL_BRIDGE && predict[i].y + predict[i].height / 2 > params.rowCheck)
                 {
                     counterRec++;
                     break;
@@ -100,8 +79,8 @@ public:
                 {
                     counterRec = 0;
                     counterSession = 0;
-                    bridgeEnable = true; // 检测到桥标志
-                    return true;
+                    _bridgeEnable = true; // 检测到桥标志
+                    return;
                 }
                 else if (counterSession >= params.BridgeCheck + 3)
                 {
@@ -109,14 +88,36 @@ public:
                     counterSession = 0;
                 }
             }
-
-            return false;
         }
+    }
+
+    bool bridgeDetection(TrackRecognition &track)
+    {
+        if (_bridgeEnable) // 进入桥梁
+        {
+            if (track.pointsEdgeLeft.size() > ROWSIMAGE / 2 && track.pointsEdgeRight.size() > ROWSIMAGE / 2) // 切行，防止错误前瞻引发转向
+            {
+                track.pointsEdgeLeft.resize(track.pointsEdgeLeft.size() / 2);
+                track.pointsEdgeRight.resize(track.pointsEdgeRight.size() / 2);
+            }
+            counterSession++;
+            if (counterSession > params.ExitFrameCnt) // 上桥40场图像后失效
+            {
+                counterRec = 0;
+                counterSession = 0;
+                counterFild = 0;
+                _bridgeEnable = false;
+            }
+
+            return true;
+        }
+        else // 检测桥
+            return false;
     }
 
     float get_speed()
     {
-        if(bridgeEnable)
+        if(_bridgeEnable)
         {
             return params.SpeedUp;
         }
@@ -140,8 +141,8 @@ public:
                    Scalar(0, 255, 255), -1); // 黄色点
         }
 
-        if (bridgeEnable)
-            putText(image, "bridgeEnable", Point(COLSIMAGE / 2 - 10, 20), cv::FONT_HERSHEY_TRIPLEX, 0.3, cv::Scalar(0, 255, 0), 1, CV_AA);
+        if (_bridgeEnable)
+            putText(image, "_bridgeEnable", Point(COLSIMAGE / 2 - 10, 20), cv::FONT_HERSHEY_TRIPLEX, 0.3, cv::Scalar(0, 255, 0), 1, CV_AA);
     }
 
     /**
@@ -175,5 +176,6 @@ private:
     Params params;
     uint16_t counterSession = 0; // 图像场次计数器
     uint16_t counterRec = 0;     // 加油站标志检测计数器
-    bool bridgeEnable = false;   // 桥区域使能标志
+    bool _bridgeEnable = false;   // 桥区域使能标志
+    uint16_t counterFild = 0;
 };

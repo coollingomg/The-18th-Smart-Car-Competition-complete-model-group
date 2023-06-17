@@ -1,16 +1,5 @@
 #pragma once
 /**
- ********************************************************************************************************
- *                                               示例代码
- *                                             EXAMPLE  CODE
- *
- *                      (c) Copyright 2022; SaiShu.Lcc.; Leo; https://bjsstech.com
- *                                   版权所属[SASU-北京赛曙科技有限公司]
- *
- *            The code is for internal use only, not for commercial transactions(开源学习,请勿商用).
- *            The code ADAPTS the corresponding hardware circuit board(代码适配百度Edgeboard-FZ3B),
- *            The specific details consult the professional(欢迎联系我们,代码持续更正，敬请关注相关开源渠道).
- *********************************************************************************************************
  * @file controlcenter_cal.cpp
  * @author your name (you@domain.com)
  * @brief 智能车控制中心计算
@@ -88,16 +77,16 @@ public:
         }
 
         /****补丁****/
-        // if(track.stdevLeft == 0 && track.stdevRight > 30
-        //     && track.pointsEdgeLeft[0].y == track.pointsEdgeLeft[track.pointsEdgeLeft.size() - 1].y)
-        // {
-        //     track.pointsEdgeLeft.resize(0);
-        // }
-        // else if(track.stdevRight == 0 && track.stdevLeft > 30
-        //     && track.pointsEdgeRight[0].y == track.pointsEdgeRight[track.pointsEdgeRight.size() - 1].y)
-        // {
-        //     track.pointsEdgeRight.resize(0);
-        // }
+        if((track.stdevLeft == 0 && track.stdevRight > 50) && track.pointsEdgeLeft.size() < 90
+            && track.pointsEdgeLeft[0].y == track.pointsEdgeLeft[track.pointsEdgeLeft.size() - 1].y)
+        {
+            track.pointsEdgeLeft.resize(0);
+        }
+        else if((track.stdevRight == 0 && track.stdevLeft > 50) && track.pointsEdgeRight.size() < 90
+            && track.pointsEdgeRight[0].y == track.pointsEdgeRight[track.pointsEdgeRight.size() - 1].y)
+        {
+            track.pointsEdgeRight.resize(0);
+        }
 
         // 通过双边缘有效点的差来判断赛道类型，使用双段三阶贝塞尔拟合中线
         if (track.pointsEdgeLeft.size() > 45 && track.pointsEdgeRight.size() > 45) 
@@ -105,27 +94,37 @@ public:
             if(style == "RIGHTCC" || style == "LEFTCC")
             {
                 //中线拟合去掉上面1/4行，处理左边线
-                if(track.pointsEdgeLeft[track.pointsEdgeLeft.size()].x <= ROWSIMAGE / 3)
+                if(track.pointsEdgeLeft.size() > 0)
                 {
-                    int cnt = track.pointsEdgeLeft.size() - 1;
-                    // 去除图片上面固定行的点集
-                    for(int i = track.pointsEdgeLeft.size() - 1; track.pointsEdgeLeft[i].x <= ROWSIMAGE / 3; i--)
+                    if(track.pointsEdgeLeft[track.pointsEdgeLeft.size() - 1].x <= ROWSIMAGE / 3)
                     {
-                        cnt--;
+                        int cnt = track.pointsEdgeLeft.size() - 1;
+                        // 去除图片上面固定行的点集
+                        for(int i = track.pointsEdgeLeft.size() - 1; track.pointsEdgeLeft[i].x <= ROWSIMAGE / 3; i--)
+                        {
+                            cnt--;
+                        }
+                        if(cnt <= 0)
+                            cnt = 0;
+                        track.pointsEdgeLeft.resize(cnt);
                     }
-                    track.pointsEdgeLeft.resize(cnt);
                 }
 
                 //中线拟合去掉上面1/4行，处理右边线
-                if(track.pointsEdgeRight[track.pointsEdgeRight.size()].x <= ROWSIMAGE / 3)
+                if(track.pointsEdgeRight.size() > 0)
                 {
-                    int cnt = track.pointsEdgeRight.size() - 1;
-                    // 去除图片上面固定行的点集
-                    for(int i = track.pointsEdgeRight.size() - 1; track.pointsEdgeLeft[i].x <= ROWSIMAGE / 3; i--)
+                    if(track.pointsEdgeRight[track.pointsEdgeRight.size() - 1].x <= ROWSIMAGE / 3)
                     {
-                        cnt--;
+                        int cnt = track.pointsEdgeRight.size() - 1;
+                        // 去除图片上面固定行的点集
+                        for(int i = track.pointsEdgeRight.size() - 1; track.pointsEdgeRight[i].x <= ROWSIMAGE / 3; i--)
+                        {
+                            cnt--;
+                        }
+                        if(cnt <= 0)
+                            cnt = 0;
+                        track.pointsEdgeRight.resize(cnt);
                     }
-                    track.pointsEdgeRight.resize(cnt);
                 }
 
                 //中线曲线拟合

@@ -1,0 +1,12 @@
+{
+    "SlowzoneCheck": 1,
+    "CheckRow": 30,
+    "ExitFrameCnt": 30,
+    "record": [
+        {
+            "#SlowzoneCheck": "减速带确认帧数",
+            "#CheckRow": "减速带识别行",
+            "#ExitFrameCnt": "减速带持续帧数"
+        }
+    ]
+}

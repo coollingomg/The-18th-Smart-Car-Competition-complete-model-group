@@ -33,6 +33,7 @@ int main(int argc, char *argv[])
     capture.set(cv::CAP_PROP_FRAME_HEIGHT, ROWSIMAGE);
     //capture.set(cv::CAP_PROP_AUTO_EXPOSURE, 0.20);  //自动曝光开关
     capture.set(cv::CAP_PROP_ZOOM, 14);
+    capture.set(cv::CAP_PROP_AUTO_EXPOSURE, 0.12);  //自动曝光开关
     // capture.set(cv::CAP_PROP_PAN, 20);
     // capture.set(cv::CAP_PROP_XI_OFFSET_X, 1);
     // capture.set(cv::CAP_PROP_XI_OFFSET_Y, 1);

@@ -30,8 +30,12 @@ int main(int argc, char *argv[])
         std::cout << "can not open video device " << std::endl;
         return 1;
     }
+    capture.set(cv::CAP_PROP_FOURCC, cv::VideoWriter::fourcc('M', 'J', 'P', 'G'));
+    capture.set(cv::CAP_PROP_FPS, 90);
     capture.set(cv::CAP_PROP_FRAME_WIDTH, COLSIMAGE);
     capture.set(cv::CAP_PROP_FRAME_HEIGHT, ROWSIMAGE);
+    capture.set(cv::CAP_PROP_ZOOM, 14);
+    capture.set(cv::CAP_PROP_AUTO_EXPOSURE, 0.20);  //自动曝光开关
 
     double rate = capture.get(CAP_PROP_FPS);
     double width = capture.get(CAP_PROP_FRAME_WIDTH);
@@ -62,7 +66,7 @@ int main(int argc, char *argv[])
 		morphologyEx(imageEnrode, imageGray, MORPH_OPEN, kernel_open, Point(-1, -1));//开运算
 		threshold(imageGray, imageBinary, 0, 255, THRESH_OTSU);
 
-        trackRecognition.trackRecognition(imageBinary);
+        trackRecognition.trackRecognition(imageBinary, 0);
         movingAverageFilter(trackRecognition.pointsEdgeLeft, 10);
         movingAverageFilter(trackRecognition.pointsEdgeRight, 10);
         // line_extend(trackRecognition.pointsEdgeLeft);

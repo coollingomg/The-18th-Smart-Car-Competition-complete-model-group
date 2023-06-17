@@ -7,7 +7,7 @@
     "EnrodeWidth" : 100,
     "EnrodeHeigth" : 50,
     "OpenSize": 50,
-    "EnterLine": 130,
+    "EnterLine": 150,
     "record": [
         {
             "#FarmlandCheck": "农田区域确认帧数",

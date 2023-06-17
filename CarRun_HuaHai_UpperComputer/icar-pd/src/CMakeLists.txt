@@ -88,8 +88,8 @@ target_link_libraries(${ICAR_PROJECT_NAME}  ${OpenCV_LIBS})
 target_link_libraries(${ICAR_PROJECT_NAME}  pthread )
 
 # 多线程测试
-set(ICAR_PROJECT_NAME "test")
-set(ICAR_PROJECT_SOURCES ${PROJECT_SOURCE_DIR}/tools/test.cpp)
+set(ICAR_PROJECT_NAME "perspective_test")
+set(ICAR_PROJECT_SOURCES ${PROJECT_SOURCE_DIR}/tools/perspective_test.cpp)
 add_executable(${ICAR_PROJECT_NAME} ${ICAR_PROJECT_SOURCES})
 target_link_libraries(${ICAR_PROJECT_NAME}  ${PPNC_LIBRARIES})
 target_link_libraries(${ICAR_PROJECT_NAME}  ${ONNX_LIBRARIES})

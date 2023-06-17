@@ -38,13 +38,17 @@ public:
      */
     struct Params 
     {
+        int MidLine = 160;          // 图像控制中线
         float speedLow = 1.0;       // 智能车最低速
         float speedHigh = 1.0;      // 智能车最高速
-        float speedAI = 1.0;    // 出入车库速度
+        float speedAI = 1.0;        // ai识别速度
         float speedCorners = 1.0;   // 贴弯速度
+        float speedcoiled = 1.0;    // 连续弯道速度
         float runP1 = 0.9;          // 一阶比例系数：直线控制量
         float runP2 = 0.018;        // 二阶比例系数：弯道控制量
         float runP3 = 0.0;          // 三阶比例系数：弯道控制量
+        float runP1_ai = 1.0;       // ai一阶比例系数：直线控制量
+        float runP2_ai = 1.0;       // ai二阶比例系数：弯道控制量
         float turnP = 3.5;          // 一阶比例系数：转弯控制量
         float turnD = 3.5;          // 一阶微分系数：转弯控制量
         float Kp = 1000.0;
@@ -53,6 +57,7 @@ public:
         uint16_t rowCutUp = 30;     // 图像顶部切行
         uint16_t rowCutBottom = 10; // 图像顶部切行
         bool Debug = false;
+        bool Button = false;
         bool SaveImage = false;
         bool CloseLoop = true;
         bool GarageEnable = false;   // 出入库使能
@@ -63,53 +68,61 @@ public:
         bool SlowzoneEnable = false;
         bool DepotEnable = false;
         bool FarmlandEnable = false;
+        string pathModel = "res/model/yolov3_mobilenet_v1";
         NLOHMANN_DEFINE_TYPE_INTRUSIVE(
-            Params, speedLow, speedHigh, speedAI, speedCorners, 
-            runP1, runP2, runP3, turnP, turnD, rowCutUp, rowCutBottom, Kp, Ki, Kd, Debug, SaveImage, CloseLoop, 
-            GarageEnable, RingEnable, CrossEnable, StopEnable, BridgeEnable, SlowzoneEnable, DepotEnable, FarmlandEnable); // 添加构造函数
+            Params, MidLine, speedLow, speedHigh, speedAI, speedCorners, speedcoiled, runP1, runP2, runP3, runP1_ai, runP2_ai, 
+            turnP, turnD, rowCutUp, rowCutBottom, Kp, Ki, Kd, Debug, Button, SaveImage, CloseLoop, GarageEnable, RingEnable, CrossEnable, 
+            StopEnable, BridgeEnable, SlowzoneEnable, DepotEnable, FarmlandEnable, pathModel); // 添加构造函数
     };
 
     Params      params;                         // 读取控制参数
     uint16_t    servoPwm    = PWMSERVOMID;      // 发送给舵机的PWM
     float       motorSpeed  = 1.0;              // 发送给电机的速度
-
+    float       error;                          // 偏差
 
     /**
      * @brief 姿态PD控制器
      * @param controlCenter 智能车控制中心
      */
-    void pdController(int controlCenter)
+    void pdController(int controlCenter, bool ai_enable)
     {
-        float error = controlCenter - COLSIMAGE / 2; // 图像控制中心转换偏差
-        static int errorLast = 0;                    // 记录前一次的偏差
+        error = controlCenter - params.MidLine;                 // 图像控制中心转换偏差
+        static int errorLast = 0;                               // 记录前一次的偏差
         static int T_cnt = 0;
 
-        if(abs(error - errorLast) > COLSIMAGE / 16) 
+        if(abs(error - errorLast) > COLSIMAGE / 14) 
         {
             T_cnt++;
-            error = error > errorLast ? errorLast + COLSIMAGE / 16 : errorLast - COLSIMAGE / 16;
+            error = error > errorLast ? errorLast + COLSIMAGE / 14 : errorLast - COLSIMAGE / 14;
         }
         else
         {
             T_cnt = 0;
         }
 
-        params.turnP = abs(error) * params.runP2 + params.runP1;
-        // if(T_cnt >= 5)
-        // {
-        //     params.turnP += params.runP3 * abs(error);
-        // }
-
-        if(T_cnt >= 3)
+        if(ai_enable)
         {
-            params.turnP += params.runP3* abs(error)* abs(error);
+            params.turnP = abs(error) * params.runP2_ai + params.runP1_ai;
         }
+        else
+        {
+            params.turnP = abs(error) * params.runP2 + params.runP1;
+            // if(T_cnt >= 5)
+            // {
+            //     params.turnP += params.runP3 * abs(error);
+            // }
 
-        // turnP = max(turnP,0.2);
-        //  if(turnP<0.2){
-        //      turnP = 0.2;
-        //  }
-        // turnP = runP1 + heightest_line * runP2;
+            if(T_cnt >= 3)
+            {
+                params.turnP += params.runP3* abs(error)* abs(error);
+            }
+
+            // turnP = max(turnP,0.2);
+            //  if(turnP<0.2){
+            //      turnP = 0.2;
+            //  }
+            // turnP = runP1 + heightest_line * runP2;
+        }
 
         int pwmDiff = (error * params.turnP) + (error - errorLast) * params.turnD;
         errorLast = error;
@@ -138,18 +151,26 @@ public:
             if (control.style == "RIGHTCC" || control.style == "LEFTCC")
             {
                 //发送的电机速度，最低速
-                motorSpeed = params.speedLow;
+                motorSpeed = params.speedcoiled;
                 //变速计数器清零
                 counterShift = controlLow;
+                return;
+            }
+            // 急转弯中，且单边，说明贴线行驶，可加速
+            else if (control.style == "RIGHT" || control.style == "LEFT")     
+            {
+                //发送的电机速度，最低速
+                motorSpeed = params.speedCorners;
                 return;
             }
             // 急转弯中，且单边，说明贴线行驶，可加速
             else if (control.style == "RIGHT_D" || control.style == "LEFT_D")     
             {
                 //发送的电机速度，最低速
-                motorSpeed = params.speedCorners;
+                motorSpeed = params.speedLow;
                 return;
             }
+
             // 直道
             else if(control.style == "STRIGHT")
             {

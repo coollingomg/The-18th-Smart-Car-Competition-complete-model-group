@@ -7,6 +7,12 @@
 #include <mutex>
 #include <thread>
 
+#include "../src/detection/bridge_detection.cpp"
+#include "../src/detection/slowzone_detection.cpp"
+
+BridgeDetection bridgeDetection;
+SlowZoneDetection slowZoneDetection;
+
 struct DetectionResult
 {
     cv::Mat rgb_frame;//摄像机原始图像  由主线程传入
@@ -15,6 +21,8 @@ struct DetectionResult
 
 class Detection
 {
+public:
+    bool Startdetect = false;
 public:
     Detection() {}
     ~Detection() {}
@@ -62,33 +70,35 @@ public:
                 _predictor->run(*feeds);
                 _predictor->render();
 
-                bool flag = false;
-                if(_predictor->results.size() > 0)
+                if(Startdetect)
                 {
-                    // flag = true;
-                    for(int i = 0; i < _predictor->results.size(); i++)
-                    {
-                        std::string label_name = _predictor->results[i].label;
-                        if(label_name != "cone")
-                        {
-                            flag = true;
-                            break;
-                        }
-                    }
+                    bridgeDetection.bridgeCheck(_predictor->results);
+                    slowZoneDetection.slowZoneCheck(_predictor->results);
                 }
 
-                if(_Cnt == 0)
+                bool flag = false;
+                for(int i = 0; i < _predictor->results.size(); i++)
                 {
-                    AI_Captured = flag;
+                    std::string label_name = _predictor->results[i].label;
+                    if((label_name == "tractor" || label_name == "corn") && _predictor->results[i].score > 0.62
+                        && _predictor->results[i].y + _predictor->results[i].height / 2 > 45)
+                    {
+                        flag = true;
+                        break;
+                    }
+                    else if(label_name == "crosswalk")
+                    {
+                        flag == false;
+                        break;
+                    }
                 }
-                
+                if(_Cnt == 0)
+                    AI_Captured = flag;
                 if(AI_Captured)
                 {
                     _Cnt++;
-                    if(_Cnt > 8)
-                    {
+                    if(_Cnt > 2)
                         _Cnt = 0;
-                    } 
                 }
             
                 //数据传递

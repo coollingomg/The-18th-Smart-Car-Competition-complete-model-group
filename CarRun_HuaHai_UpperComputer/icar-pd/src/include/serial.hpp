@@ -26,6 +26,7 @@ public:
     {
         _speed = speed;
         _servo_pwm = servo_pwm;
+        _ctrl = true;
     }
 
     void buzzerSound(unsigned char sound)
@@ -46,6 +47,11 @@ public:
         return _recvSpeed;
     }
 
+    bool wait_signal()
+    {
+        return _driver->receiveStartSignal();
+    }
+
     int open()
     {
         return _open();
@@ -55,7 +61,7 @@ public:
     {
         _loop = true;
         send();
-        recv();
+        // recv();
     }
 
     void Stop()
@@ -73,16 +79,22 @@ public:
     void send()
     {
         _thread_send = std::make_unique<std::thread>([this]{
+            _driver->carControl(0, 1500);
             while(_loop)
             {
                 float speed = _speed;
                 uint16_t servo_pwm = _servo_pwm;
-                _driver->carControl(speed, servo_pwm);
                 if(_sound)
                 {
                     _driver->buzzerSound(_sound);
                     _sound = 0;
                 }
+                // if(_ctrl)
+                // {
+                //     _driver->carControl(speed, servo_pwm);
+                //     _ctrl = false;
+                // }
+                _driver->carControl(speed, servo_pwm);
                 std::this_thread::sleep_for(std::chrono::milliseconds(8));
 
             }
@@ -95,15 +107,19 @@ public:
             while(_loop)
             {
                 uint8_t data_addr;
-                data_addr = _driver->receiveStartSignal();
+                data_addr = _driver->receiveData();
                 if(data_addr == 0x08)
                 {
                     _recvSpeed = _driver->speed_unpack();
                 }
-                else
+                else if(data_addr == 0x06)
                 {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(8));
+                    _carSignal = true;
                 }
+                // else
+                // {
+                //     std::this_thread::sleep_for(std::chrono::milliseconds(8));
+                // }
             }
         });
     }
@@ -131,6 +147,9 @@ private:
     LibSerial::BaudRate _bps;
     std::shared_ptr<Driver> _driver;
     unsigned char _sound;
+
+    bool _ctrl = false;
+    bool _carSignal = false;
     float _speed;
     uint16_t _servo_pwm;
     float _recvSpeed;
