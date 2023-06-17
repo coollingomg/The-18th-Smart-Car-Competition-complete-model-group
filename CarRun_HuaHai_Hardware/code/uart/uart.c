@@ -767,12 +767,15 @@ void Wireless_Handle(void)
 {
     if(Bluetooth_data.Flag_Wireless == true)
     {
-//        Wireless_Uart_Send((uint32_t)(icarStr.SpeedSet*10000),
-//                           (uint32_t)(icarStr.speed_set*10000),
-//                           (uint32_t)(icarStr.SpeedFeedback*10000),0);
-        Wireless_Uart_Send((int32_t)(Gyroscope_g_and_a_data_get.g_x*10000),
-                           (int32_t)(Gyroscope_attitude_Angle_data_get.pitch*10000),
-                           (int32_t)(Gyroscope_attitude_Angle_data_get.roll*10000),0);
+        Wireless_Uart_Send((uint32_t)(icarStr.SpeedSet*10000),
+                           (uint32_t)(icarStr.speed_set*10000),
+                           (uint32_t)(icarStr.SpeedFeedback*10000),0);
+//        Wireless_Uart_Send((int32_t)(Gyroscope_g_and_a_data_get.g_x*10000),
+//                           (int32_t)(Gyroscope_attitude_Angle_data_get.pitch*10000),
+//                           (int32_t)(Gyroscope_attitude_Angle_data_get.roll*10000),0);
+//        Wireless_Uart_Send((int32_t)(Gyroscope_g_and_a_data_get.g_x*10000),
+//                           (int32_t)(Gyroscope_g_and_a_data_get.g_y*10000),
+//                           (int32_t)(Gyroscope_g_and_a_data_get.g_z*10000),0);
         Bluetooth_data.Flag_Wireless = false;
     }
 }

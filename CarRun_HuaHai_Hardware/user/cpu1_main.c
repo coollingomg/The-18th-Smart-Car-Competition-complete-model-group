@@ -12,6 +12,7 @@
 #include "key/key.h"
 #include "uart.h"
 #include "pid.h"
+#include "Kalman/Kalman_Filter.h"
 
 
 //-----------------------------------代码区域-----------------------------------
@@ -30,6 +31,8 @@ void core1_main(void)
     my_key_init();
     //调试蓝牙接口
     BLUETOOTH_uart_init(bluetooth_using_uart, bluetooth_using_uart_baud, uart_booluteeth_pin_tx, uart_booluteeth_pin_rx);
+    //偏航角加速度滤波，卡尔曼参数初始化
+    Kalman_Filter_Init(&kalman_struck1);
 
 //-----------------------------------此处编写用户代码 例如外设初始化代码等-----------------------------------
 
@@ -41,8 +44,6 @@ void core1_main(void)
 
         //蓝牙串口发送数据处理
         Wireless_Handle();
-//        //姿态角解算处理函数
-//        icm20602_attitude_Angle_handle();
         //电压采样处理
         adc_Handle();
         //姿态角解算处理函数

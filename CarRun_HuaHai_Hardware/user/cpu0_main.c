@@ -46,9 +46,8 @@ int core0_main(void)
     gpio_init(P21_3, GPO, 1, GPO_PUSH_PULL);
     //初始化引脚，用于提示数据接受是否错误
     gpio_init(P21_5, GPO, 1, GPO_PUSH_PULL);
-    //卡尔曼参数初始化
+    //卡尔曼参数初始化，电机返回速度滤波
     Kalman_Filter_Init(&kalman_struck);
-    Kalman_Filter_Init(&kalman_struck1);
     //智能车控制参数初始化
     ICAR_Init();
     //初始化完成，蜂鸣器提示音

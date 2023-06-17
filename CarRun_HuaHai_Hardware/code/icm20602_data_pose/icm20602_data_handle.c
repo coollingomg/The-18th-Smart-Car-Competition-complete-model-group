@@ -7,6 +7,7 @@
 //包含头文件
 #include "icm20602_data_handle.h"
 #include "zf_driver_gpio.h"
+#include "Kalman/Kalman_Filter.h"
 
 
 //定义陀螺仪姿态角结构体
@@ -91,6 +92,7 @@ void icm20602_attitude_Angle_handle(void)
 
 //        //姿态角解算
 //        IMUupdate(Gyroscope_g_and_a_data_get, Gyroscope_attitude_Angle_data_get);
+        Gyroscope_g_and_a_data_get.g_x = Kalman_Filter_Fun(&kalman_struck1, Gyroscope_g_and_a_data_get.g_x);
 
         //标志位清零
         Gyroscope_attitude_Angle_data_get.Flag_handle = false;

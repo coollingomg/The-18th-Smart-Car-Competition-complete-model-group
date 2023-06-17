@@ -2,8 +2,9 @@
 
 
 //定义卡尔曼结构体参数
-KalmanInfo kalman_struck;
-KalmanInfo kalman_struck1;
+KalmanInfo kalman_struck;       //电机返回速度滤波
+KalmanInfo kalman_struck1;      //偏航角加速度滤波
+
 
 //初始化卡尔曼滤波结构体
 void Kalman_Filter_Init(KalmanInfo *KalmanInfo_Structure)
