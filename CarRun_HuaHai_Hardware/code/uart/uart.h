@@ -25,7 +25,7 @@
 //宏定义eb使用的串口
 #define eb_using_uart               2       //UART_2
 //宏定义eb使用串口的波特率
-#define eb_using_uart_baud          115200
+#define eb_using_uart_baud          460800
 //宏定义蓝牙串口引脚
 #define uart_eb_pin_tx              14      //UART2_TX_P10_5
 #define uart_eb_pin_rx              10      //UART2_RX_P10_6

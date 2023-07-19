@@ -109,6 +109,12 @@ set(ICAR_PROJECT_SOURCES ${PROJECT_SOURCE_DIR}/tools/cone_blue_enrode.cpp)
 add_executable(${ICAR_PROJECT_NAME} ${ICAR_PROJECT_SOURCES})
 target_link_libraries(${ICAR_PROJECT_NAME}  ${OpenCV_LIBS})
 
+# 锥桶识别
+set(ICAR_PROJECT_NAME "cone_detection")
+set(ICAR_PROJECT_SOURCES ${PROJECT_SOURCE_DIR}/tools/cone_detection.cpp)
+add_executable(${ICAR_PROJECT_NAME} ${ICAR_PROJECT_SOURCES})
+target_link_libraries(${ICAR_PROJECT_NAME}  ${OpenCV_LIBS})
+
 #---------------------------------------------------------------------
 #               [ bin ] ==> [ main ]
 #---------------------------------------------------------------------

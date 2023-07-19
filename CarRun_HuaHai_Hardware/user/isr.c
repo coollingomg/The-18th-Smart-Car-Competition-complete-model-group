@@ -15,27 +15,19 @@ IFX_INTERRUPT(cc60_pit_ch1_isr, 0, CCU6_0_CH1_ISR_PRIORITY)
 {
     interrupt_global_enable(0);                     // 开启中断嵌套
     pit_clear_flag(CCU60_CH1);
-
-
-
-
 }
 
 //IFX_INTERRUPT(cc61_pit_ch0_isr, 0, CCU6_1_CH0_ISR_PRIORITY)
 //{
 //    interrupt_global_enable(0);                     // 开启中断嵌套
 //    pit_clear_flag(CCU61_CH0);
-//
-//
-//
-//
 //}
 
-//IFX_INTERRUPT(cc61_pit_ch1_isr, 0, CCU6_1_CH1_ISR_PRIORITY)
-//{
-//    interrupt_global_enable(0);                     // 开启中断嵌套
-//    pit_clear_flag(CCU61_CH1);
-//}
+IFX_INTERRUPT(cc61_pit_ch1_isr, 0, CCU6_1_CH1_ISR_PRIORITY)
+{
+    interrupt_global_enable(0);                     // 开启中断嵌套
+    pit_clear_flag(CCU61_CH1);
+}
 
 // **************************** PIT中断函数 ****************************
 
@@ -152,6 +144,7 @@ IFX_INTERRUPT(uart1_rx_isr, 0, UART1_RX_INT_PRIO)
     IfxAsclin_Asc_isrReceive(&uart1_handle);
     camera_uart_handler();                          // 摄像头参数配置统一回调函数
 }
+
 IFX_INTERRUPT(uart1_er_isr, 0, UART1_ER_INT_PRIO)
 {
     interrupt_global_enable(0);                     // 开启中断嵌套
@@ -183,29 +176,17 @@ IFX_INTERRUPT(uart3_tx_isr, 0, UART3_TX_INT_PRIO)
 {
     interrupt_global_enable(0);                     // 开启中断嵌套
     IfxAsclin_Asc_isrTransmit(&uart3_handle);
-
-
-
-
 }
+
 IFX_INTERRUPT(uart3_rx_isr, 0, UART3_RX_INT_PRIO)
 {
     interrupt_global_enable(0);                     // 开启中断嵌套
     IfxAsclin_Asc_isrReceive(&uart3_handle);
-
-
-
-
-
 }
+
 IFX_INTERRUPT(uart3_er_isr, 0, UART3_ER_INT_PRIO)
 {
     interrupt_global_enable(0);                     // 开启中断嵌套
     IfxAsclin_Asc_isrError(&uart3_handle);
-
-
-
-
-
 }
 // **************************** 串口中断函数 ****************************

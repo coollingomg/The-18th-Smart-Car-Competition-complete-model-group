@@ -106,8 +106,8 @@ void motor_ControlLoop(void)
     static int16 speed_to_pwm = 0;
     //线程控制，每1ms进入一次该函数
     motorStr.Counter++;
-    //每3ms对电机速度进行控制
-    if(motorStr.Counter >= 3)
+    //每5ms对电机速度进行控制
+    if(motorStr.Counter >= 5)
     {
         //获取当前编码器的值
         motorStr.EncoderValue = encoder_get_count(USING_TIMER);
@@ -123,8 +123,8 @@ void motor_ControlLoop(void)
             //闭环速控
             if(motorStr.CloseLoop)
             {
-                //pid计算，并赋值给pwm
-                //icarStr.speed_set = Kalman_Filter_Fun(&kalman_struck1, icarStr.SpeedSet);
+//                //pid计算，并赋值给pwm
+//                icarStr.speed_set = Kalman_Filter_Fun(&kalman_struck2, icarStr.SpeedSet);
                 PID_Calc(&car_speed_pid, icarStr.SpeedFeedback, icarStr.SpeedSet);
                 speed_to_pwm = (int16)(car_speed_pid.out + usbStr.recevie_k * icarStr.SpeedFeedback);
                 //赋值pwm

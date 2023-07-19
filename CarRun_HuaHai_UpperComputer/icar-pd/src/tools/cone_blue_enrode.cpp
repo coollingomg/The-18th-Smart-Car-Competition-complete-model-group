@@ -45,6 +45,14 @@ int main(int argc, char *argv[])
 
     while (1)
     {
+		{
+			static auto preTime = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
+			auto startTime = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
+			float detFPS = (float)1000.f / (startTime - preTime);
+			cout << "run frame time : " << startTime - preTime << "ms  " << "FPS: " << (int)detFPS << endl;
+			preTime = startTime;
+		}
+
         Mat frame;
         if (!capture.read(frame))
         {
@@ -52,47 +60,114 @@ int main(int argc, char *argv[])
             continue;
         }
 
+        POINT pointTop = POINT(ROWSIMAGE - 1, 0);
+        cv::Mat img_rgb = frame.clone();
+        cv::circle(img_rgb, cv::Point(0, ROWSIMAGE - trackRecognition.rowCutBottom), 5, cv::Scalar(20, 200, 200), -1);
+        cv::circle(img_rgb, cv::Point(COLSIMAGE - 1, ROWSIMAGE - trackRecognition.rowCutBottom), 5, cv::Scalar(20, 200, 200), -1);
+        // 设置锥桶颜色的RGB范围（黄色），提取掩膜
+        cv::Mat mask;
+        cv::Scalar lowerYellow(0, 100, 100);
+        cv::Scalar upperYellow(100, 255, 255);
+        cv::inRange(img_rgb, lowerYellow, upperYellow, mask);
+        // 进行形态学操作，去除噪声并提取锥桶区域的轮廓
+        cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(5, 5));
+        cv::morphologyEx(mask, mask, cv::MORPH_OPEN, kernel);
+        // 查找轮廓
+        std::vector<std::vector<cv::Point>> contours;
+        cv::findContours(mask, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+
+        //分离蓝色通道
         std::vector<cv::Mat> channels;
         split(frame, channels);
         cv::Mat blueChannel = channels[0];
 
-		Mat imageGray, imageBinary, imageEnrode;
+        // 创建空白图像作为结果
+        cv::Mat resultImage = cv::Mat::zeros(frame.size(), CV_8UC3);
+        // 遍历每个轮廓
+        for (size_t i = 0; i < contours.size(); ++i) 
+        {
+            bool lined = false;
+            // 遍历当前轮廓的点
+            for (size_t j = 0; j < contours[i].size(); ++j) 
+            {
+                // 获取当前轮廓的当前点
+                cv::Point currentPoint = contours[i][j];
+                if(currentPoint.y < trackRecognition.rowCutUp)
+                    continue;
 
-        Mat kernel_close = getStructuringElement(MORPH_RECT, Size(3, 3));//创建结构元
-		Mat kernel_enrode = getStructuringElement(MORPH_ELLIPSE, Size(60, 60));
-		Mat kernel_open = getStructuringElement(MORPH_ELLIPSE, Size(50, 50));
-		morphologyEx(blueChannel, blueChannel, MORPH_CLOSE, kernel_close, Point(-1, -1));//闭运算
-		morphologyEx(blueChannel, imageEnrode, MORPH_ERODE, kernel_enrode, Point(-1, -1));//腐蚀运算
-		morphologyEx(imageEnrode, imageGray, MORPH_OPEN, kernel_open, Point(-1, -1));//开运算
-		threshold(imageGray, imageBinary, 0, 255, THRESH_OTSU);
+                // 遍历其他轮廓
+                for (size_t k = i; k < contours.size(); ++k)
+                {
+                    // 跳过当前轮廓
+                    if (k == i) {
+                        continue;
+                    }
+
+                    // 遍历其他轮廓的点
+                    for (size_t l = 0; l < contours[k].size(); ++l) {
+                        // 获取其他轮廓的当前点
+                        cv::Point otherPoint = contours[k][l];
+                        if(otherPoint.y < trackRecognition.rowCutUp)
+                            continue;
+
+                        // 计算两点之间的距离
+                        double distance = cv::norm(currentPoint - otherPoint);
+                        double distThreshold = std::max(currentPoint.y, otherPoint.y) * 0.5 + 
+                                            std::abs(currentPoint.x - otherPoint.x) * (std::min(currentPoint.y, otherPoint.y) / ROWSIMAGE);
+
+                        // 如果距离小于阈值，使用线段将两点连接起来
+                        if (distance < distThreshold) 
+                        {
+                            // {
+                            //     cv::Rect currentboundingRect = cv::boundingRect(contours[j]);
+                            //     cv::Rect otherboundingRect = cv::boundingRect(contours[k]);
+                            //     currentPoint = cv::Point(currentboundingRect.x + currentboundingRect.width / 2, currentboundingRect.y + currentboundingRect.height / 2);
+                            //     otherPoint = cv::Point(otherboundingRect.x + otherboundingRect.width / 2, otherboundingRect.y + otherboundingRect.height / 2);
+                            // }
+                            if(currentPoint.y < pointTop.x)
+                                pointTop = POINT(currentPoint.y, currentPoint.x);
+                            if(otherPoint.y < pointTop.x)
+                                pointTop = POINT(otherPoint.y, otherPoint.x);
+                            cv::line(resultImage, currentPoint, otherPoint, cv::Scalar(0, 255, 0), 5);
+                            cv::line(blueChannel, currentPoint, otherPoint, cv::Scalar(60), 5);
+                            lined = true;
+                            break;
+                        }
+                    }
+                }
+                if(lined)
+                    break;
+            }
+        }
+
+		cv::Mat imageBinary, imageEnrode;
+
+        cv::Mat kernel_close = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(5, 5));//创建结构元
+		cv::Mat kernel_enrode = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(40, 40));
+		cv::morphologyEx(blueChannel, blueChannel, cv::MORPH_CLOSE, kernel_close, cv::Point(-1, -1));//闭运算
+		cv::morphologyEx(blueChannel, imageEnrode, cv::MORPH_ERODE, kernel_enrode, cv::Point(-1, -1));//腐蚀运算
+		cv::threshold(imageEnrode, imageBinary, 0, 255, cv::THRESH_OTSU);
 
         trackRecognition.trackRecognition(imageBinary, 0);
         movingAverageFilter(trackRecognition.pointsEdgeLeft, 10);
         movingAverageFilter(trackRecognition.pointsEdgeRight, 10);
-        // line_extend(trackRecognition.pointsEdgeLeft);
-        // line_extend(trackRecognition.pointsEdgeRight);
-        // uint16_t size = MIN(trackRecognition.pointsEdgeLeft.size(), trackRecognition.pointsEdgeRight.size());
-        // for(int i = 0; i < size; i++)
-        // {
-        //     uint16_t width = trackRecognition.pointsEdgeRight[i].y - trackRecognition.pointsEdgeLeft[i].y;
-        //     if(width > COLSIMAGE / 10)
-        //         trackRecognition.widthBlock.push_back(POINT(i, width));
-        //     else
-        //     {
-        //         trackRecognition.pointsEdgeRight.resize(i);
-        //         trackRecognition.pointsEdgeLeft.resize(i);
-        //         break;
-        //     }
-        // }
 
-        trackRecognition.drawImage(frame);
+        if(pointTop.y)
+        {
+            trackRecognition.pointsEdgeLeft.resize(abs(pointTop.x - trackRecognition.pointsEdgeLeft[0].x));
+            trackRecognition.pointsEdgeRight.resize(abs(pointTop.x - trackRecognition.pointsEdgeRight[0].x));
+        }
+
+        trackRecognition.drawImage(img_rgb);
+        cv::circle(img_rgb, Point(pointTop.y, pointTop.x), 5, Scalar(226, 43, 138), -1);
         
-        imshow("frame", frame);
-        imshow("blueChannel", blueChannel);
-        imshow("enrode", imageEnrode);
-        imshow("open", imageGray);
-        imshow("enrode_binary", imageBinary);
-        waitKey(5);
+        cv::imshow("frame", img_rgb);
+        cv::imshow("Mask", mask);
+        cv::imshow("lineResult", resultImage);
+        cv::imshow("blueChannel", blueChannel);
+        cv::imshow("enrode", imageEnrode);
+        cv::imshow("enrode_binary", imageBinary);
+        cv::waitKey(1);
     }
     capture.release();
 }

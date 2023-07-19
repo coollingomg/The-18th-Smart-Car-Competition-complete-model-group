@@ -37,9 +37,9 @@ public:
         }
     }
 
-    void set_PID(float Kp, float Ki, float Kd)
+    void set_PID(float Kp, float Ki, float Kd, float Kv)
     {
-        _driver->PID_init(Kp, Ki, Kd);
+        _driver->PID_init(Kp, Ki, Kd, Kv);
     }
 
     float get_speed()
@@ -73,6 +73,8 @@ public:
             _thread_recv->join();
         if (_driver)
             _driver->close();
+
+        std::cout << "serial exit" << std::endl;
     }
 
 
@@ -95,7 +97,7 @@ public:
                 //     _ctrl = false;
                 // }
                 _driver->carControl(speed, servo_pwm);
-                std::this_thread::sleep_for(std::chrono::milliseconds(8));
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
 
             }
         });

@@ -156,14 +156,14 @@ public:
    *
    * @param 略
    */
-  void PID_init(float Kp, float Ki, float Kd)
+  void PID_init(float Kp, float Ki, float Kd , float Kv)
   {
     if(isOpen)
     {
       Bint32_Union Kp_Union;
       Bint32_Union Ki_Union;
       Bint32_Union Kd_Union;
-      unsigned char sendBuff[16];
+      unsigned char sendBuff[20];
       unsigned char check = 0;
 
       Kp_Union.Float = Kp;
@@ -172,7 +172,7 @@ public:
 
       sendBuff[0] = 0x42;
       sendBuff[1] = 0x10;
-      sendBuff[2] = 16;
+      sendBuff[2] = 20;
 
       sendBuff[3] = Kp_Union.U8_Buff[0];
       sendBuff[4] = Kp_Union.U8_Buff[1];
@@ -189,14 +189,18 @@ public:
       sendBuff[13] = Kd_Union.U8_Buff[2];
       sendBuff[14] = Kd_Union.U8_Buff[3];
 
-      for (size_t i = 0; i < 15; i++)
+      Kd_Union.Float = Kv;
+      for(int i = 0;i < 4;i++)
+        sendBuff[15+i] = Kd_Union.U8_Buff[i];
+
+      for (int i = 0; i < 19; i++)
       {
         check += sendBuff[i];
       }
-      sendBuff[15] = check;
+      sendBuff[19] = check;
 
       // 循环发送数据
-      for (size_t i = 0; i < 16; i++)
+      for (int i = 0; i < 20; i++)
       {
         send(sendBuff[i]);
       }

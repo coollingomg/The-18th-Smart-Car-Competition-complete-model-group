@@ -9,9 +9,13 @@
 
 #include "../src/detection/bridge_detection.cpp"
 #include "../src/detection/slowzone_detection.cpp"
+#include "../src/detection/depot_detection.cpp"
+#include "../src/detection/farmland_avoidance.cpp"
 
 BridgeDetection bridgeDetection;
 SlowZoneDetection slowZoneDetection;
+DepotDetection depotDetection;             // 车辆维修区检测
+FarmlandAvoidance farmlandAvoidance;       // 农田断路区检测
 
 struct DetectionResult
 {
@@ -41,7 +45,9 @@ public:
     void Stop()
     {
         _loop = false;
-        _thread->join();
+        if(_thread->joinable())
+            _thread->join();
+        std::cout << "ai exit" << std::endl;
     }
 
     bool AI_Enable()
@@ -57,31 +63,48 @@ public:
                 std::shared_ptr<DetectionResult> result = std::make_shared<DetectionResult>();
 
                 std::unique_lock<std::mutex> lock(_mutex);
-                while(_frame == nullptr)
+                // while(_frame == nullptr)
+                // {
+                //     cond_.wait(lock);
+                // }
+                while (_frame == nullptr)
                 {
-                    cond_.wait(lock);
+                    // 设置超时时间
+                    if (cond_.wait_for(lock, std::chrono::seconds(1)) == std::cv_status::timeout) {
+                        // 超时处理逻辑
+                        std::cout << "ai wait for frame time out" << std::endl;
+                        break;
+                    }
                 }
-                result->rgb_frame = _frame->clone();
-                _frame = nullptr;
-                lock.unlock();
+                if(_frame != nullptr)
+                {
+                    result->rgb_frame = _frame->clone();
+                    _frame = nullptr;
+                    lock.unlock();
+                }
+                else 
+                    continue;
 
                 //ai推理
-                auto feeds = _predictor->preprocess(result->rgb_frame, {320, 320});
-                _predictor->run(*feeds);
-                _predictor->render();
 
                 if(Startdetect)
                 {
+                    auto feeds = _predictor->preprocess(result->rgb_frame, {320, 320});
+                    _predictor->run(*feeds);
+                    _predictor->render();
+                    
                     bridgeDetection.bridgeCheck(_predictor->results);
                     slowZoneDetection.slowZoneCheck(_predictor->results);
+                    depotDetection.depotDetection(_predictor->results);
+                    farmlandAvoidance.farmdlandCheck(_predictor->results);
                 }
 
                 bool flag = false;
                 for(int i = 0; i < _predictor->results.size(); i++)
                 {
                     std::string label_name = _predictor->results[i].label;
-                    if((label_name == "tractor" || label_name == "corn") && _predictor->results[i].score > 0.62
-                        && _predictor->results[i].y + _predictor->results[i].height / 2 > 45)
+                    if((label_name == "tractor" || label_name == "corn") && _predictor->results[i].score > 0.52
+                        && _predictor->results[i].y + _predictor->results[i].height / 2 > 20)
                     {
                         flag = true;
                         break;

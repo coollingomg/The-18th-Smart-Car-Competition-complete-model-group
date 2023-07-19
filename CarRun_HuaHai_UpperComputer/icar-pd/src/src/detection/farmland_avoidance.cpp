@@ -36,13 +36,304 @@ public:
      */
     void reset(void)
     {
+        pointTop = POINT(ROWSIMAGE - 1, 0);
         _speed = 0.0f;
         counterRec = 0;
         counterSession = 0;
         counterFild = 0;
         farmlandStep = FarmlandStep::None;
     }
-    
+
+	/**
+	 * @brief 农田区域检测，在Ai线程运行
+	 *
+	 * @param predict AI检测结果
+	 */
+    bool farmdlandCheck(vector<PredictResult> predict)
+    {
+        if(counterFild < 30)
+        {
+            counterFild++;//屏蔽计数器
+            return false;
+        }
+        if(farmlandStep == FarmlandStep::None)
+        {
+			for (int i = 0; i < predict.size(); i++)
+			{
+				if (predict[i].label == LABEL_CORN) // 拖拉机标志检测
+				{
+					counterRec++;
+					break;
+				}
+			}
+            if (counterRec)
+            {
+                if (counterRec > params.FarmlandCheck && counterSession < params.FarmlandCheck * 2 + 1)
+                {
+                    farmlandStep = FarmlandStep::Enable; // 农田区域使能
+                    counterRec = 0;
+                    counterSession = 0;
+                }
+                else if (counterSession >= params.FarmlandCheck * 2 + 1)
+                {
+                    counterRec = 0;
+                    counterSession = 0;
+                }
+                counterSession++;
+            }
+        }
+    }
+
+    /**
+     * @brief 农田区域路径规划，在主线程运行
+     *
+     * @param track 赛道识别结果
+     * @param frame 摄像头图像
+     */
+    bool farmlandAvoid(TrackRecognition &track, cv::Mat frame)
+    {
+        switch(farmlandStep)
+        {
+        case FarmlandStep::None:
+        {
+            if(track.pointsEdgeLeft.size() < ROWSIMAGE / 2 && track.pointsEdgeRight.size() < ROWSIMAGE / 2
+                && track.widthBlock[track.widthBlock.size() - 1].y <= COLSIMAGE / 10 + 10)
+            {
+                double k_left = 0, k_right = 0;
+                k_left = perspectiveTangentSlope(track.pointsEdgeLeft, inRange(track.pointsEdgeLeft, track.pointsEdgeLeft.size() * 0.8), 2);
+                k_right = perspectiveTangentSlope(track.pointsEdgeRight, inRange(track.pointsEdgeRight, track.pointsEdgeRight.size() * 0.8), 2);
+                if( (abs(k_left) > 7 && abs(k_right) < 3) || (abs(k_left) < 3) && abs(k_right) > 7)
+                {
+                    //farmlandStep = FarmlandStep::Enable;
+                }
+            }
+            break;
+        }
+        case FarmlandStep::Enable:
+        {
+            if (track.pointsEdgeLeft.size() < params.EnterLine && track.pointsEdgeRight.size() < params.EnterLine)
+            {
+                counterRec++;
+                if (counterRec > 1)
+                {
+                    counterSession = 0;
+                    counterRec = 0;
+                    farmlandStep = FarmlandStep::Enter;
+                }
+            }
+            else
+            {
+                if (track.pointsEdgeLeft.size() > 50)
+                {
+                    track.pointsEdgeLeft.resize(track.pointsEdgeLeft.size() * 0.7);
+                }
+                if (track.pointsEdgeRight.size() > 50)
+                {
+                    track.pointsEdgeRight.resize(track.pointsEdgeRight.size() * 0.7);
+                }
+                pointsEdgeLeftLast = track.pointsEdgeLeft;
+                pointsEdgeRightLast = track.pointsEdgeRight;
+            }
+            
+            break;
+        }
+        case FarmlandStep::Enter:
+        {
+            if (track.pointsEdgeLeft.size() < 80 && track.pointsEdgeRight.size() < 80)
+            {
+                counterSession = 0;
+                counterRec = 0;
+                farmlandStep = FarmlandStep::Cruise;
+            }
+            _imageGray = ConeEnrode(frame);
+            threshold(_imageGray, _imageBinary, 0, 255, THRESH_OTSU);
+
+            track.reset();
+            track.trackRecognition(_imageBinary, 0);
+            movingAverageFilter(track.pointsEdgeLeft, 10);
+            movingAverageFilter(track.pointsEdgeRight, 10);
+            line_extend(track.pointsEdgeLeft);
+            line_extend(track.pointsEdgeRight);
+            uint16_t size = MIN(track.pointsEdgeLeft.size(), track.pointsEdgeRight.size());
+            if(size > 160)
+            {
+                size = 160;
+                track.pointsEdgeRight.resize(size);
+                track.pointsEdgeLeft.resize(size);
+            }
+            for(int i = 0; i < size; i++)
+            {
+                uint16_t width = track.pointsEdgeRight[i].y - track.pointsEdgeLeft[i].y;
+                if(width > COLSIMAGE / 10)
+                    track.widthBlock.push_back(POINT(i, width));
+                else
+                {
+                    track.pointsEdgeRight.resize(i);
+                    track.pointsEdgeLeft.resize(i);
+                    break;
+                }
+            }
+            break;
+        }
+        case FarmlandStep::Cruise:
+        {
+            pointTop = POINT(ROWSIMAGE - 1, 0);
+            cv::Mat img_rgb = frame.clone();
+            cv::circle(img_rgb, cv::Point(0, ROWSIMAGE - track.rowCutBottom), 5, cv::Scalar(20, 200, 200), -1);
+            cv::circle(img_rgb, cv::Point(COLSIMAGE - 1, ROWSIMAGE - track.rowCutBottom), 5, cv::Scalar(20, 200, 200), -1);
+            // 设置锥桶颜色的RGB范围（黄色），提取掩膜
+            cv::Mat mask;
+            cv::Scalar lowerYellow(0, 100, 100);
+            cv::Scalar upperYellow(100, 255, 255);
+            cv::inRange(img_rgb, lowerYellow, upperYellow, mask);
+            // 进行形态学操作，去除噪声并提取锥桶区域的轮廓
+            cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(5, 5));
+            cv::morphologyEx(mask, mask, cv::MORPH_OPEN, kernel);
+            // 查找轮廓
+            std::vector<std::vector<cv::Point>> contours;
+            cv::findContours(mask, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+
+            if ((track.pointsEdgeLeft.size() > 80 || track.pointsEdgeRight.size() > 80) && contours.size() <= 3
+                && (track.pointsEdgeLeft[10].x > COLSIMAGE / 2 || track.pointsEdgeRight[10].x > COLSIMAGE / 2))
+            {
+                counterRec++;
+                if(counterRec > 1)
+                {
+                    farmlandStep = FarmlandStep::None; // 出农田
+                    reset();
+                }
+            }
+
+            //分离蓝色通道
+            std::vector<cv::Mat> channels;
+            split(frame, channels);
+            cv::Mat blueChannel = channels[0];
+            // 遍历每个轮廓
+            for (size_t i = 0; i < contours.size(); ++i) 
+            {
+                bool lined = false;
+                // 遍历当前轮廓的点
+                for (size_t j = 0; j < contours[i].size(); ++j) 
+                {
+                    // 获取当前轮廓的当前点
+                    cv::Point currentPoint = contours[i][j];
+                    if(currentPoint.y < track.rowCutUp)
+                        continue;
+
+                    // 遍历其他轮廓
+                    for (size_t k = i; k < contours.size(); ++k)
+                    {
+                        // 跳过当前轮廓
+                        if (k == i) {
+                            continue;
+                        }
+
+                        // 遍历其他轮廓的点
+                        for (size_t l = 0; l < contours[k].size(); ++l) {
+                            // 获取其他轮廓的当前点
+                            cv::Point otherPoint = contours[k][l];
+                            if(otherPoint.y < track.rowCutUp)
+                                continue;
+
+                            if(abs(currentPoint.y - otherPoint.y) > 100 || abs(currentPoint.x - otherPoint.x) > 120)
+                                continue;
+
+                            // 计算两点之间的距离
+                            double distance = cv::norm(currentPoint - otherPoint);
+                            double x_dist, y_dist, distThreshold;
+                            x_dist = std::max(currentPoint.y, otherPoint.y) * 0.6;
+                            y_dist = std::abs(currentPoint.x - otherPoint.x) * (std::max(std::max(currentPoint.y, otherPoint.y), 80) / ROWSIMAGE);
+                            distThreshold = x_dist + y_dist;
+
+                            if(distThreshold < 50)
+                                distThreshold = 50;
+
+                            // 如果距离小于阈值，使用线段将两点连接起来
+                            if (distance < distThreshold) 
+                            {
+                                if(currentPoint.y < pointTop.x)
+                                    pointTop = POINT(currentPoint.y, currentPoint.x);
+                                if(otherPoint.y < pointTop.x)
+                                    pointTop = POINT(otherPoint.y, otherPoint.x);
+                                cv::line(blueChannel, currentPoint, otherPoint, cv::Scalar(30), 5);
+                                lined = true;
+                                break;
+                            }
+                        }
+                    }
+                    if(lined)
+                        break;
+                }
+            }
+            cv::Mat kernel_close = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(5, 5));//创建结构元
+            cv::Mat kernel_enrode = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(40, 40));
+            // cv::morphologyEx(blueChannel, blueChannel, cv::MORPH_CLOSE, kernel_close, cv::Point(-1, -1));//闭运算
+            cv::morphologyEx(blueChannel, _imageGray, cv::MORPH_ERODE, kernel_enrode, cv::Point(-1, -1));//腐蚀运算
+            cv::threshold(_imageGray, _imageBinary, 0, 255, cv::THRESH_OTSU);
+
+            track.reset();
+            track.trackRecognition(_imageBinary, 0);
+            movingAverageFilter(track.pointsEdgeLeft, 5);
+            movingAverageFilter(track.pointsEdgeRight, 5);
+
+            if(pointTop.y && pointTop.x < ROWSIMAGE / 2)
+            {
+                uint16_t validrow = abs(pointTop.x - track.pointsEdgeLeft[0].x - 1);
+                if(validrow < track.pointsEdgeLeft.size())
+                {
+                    track.pointsEdgeLeft.resize(validrow);
+                    track.pointsEdgeRight.resize(validrow);
+                }
+            }
+
+            // uint16_t counter = 0;
+            // for(int i = 0; i < track.pointsEdgeLeft.size(); i++)
+            // {
+            //     if(track.pointsEdgeLeft[i].y < 3 && track.pointsEdgeRight[i].y > COLSIMAGE - 3)
+            //         counter++;
+            // }
+            // if(counter > track.pointsEdgeLeft.size() / 2)
+            // {
+            //     track.pointsEdgeLeft = pointsEdgeLeftLast;
+            //     track.pointsEdgeRight = pointsEdgeRightLast;
+            // }
+            // else
+            // {
+            //     pointsEdgeLeftLast = track.pointsEdgeLeft;
+            //     pointsEdgeRightLast = track.pointsEdgeRight;
+            // }
+
+            uint16_t edge_counter = 0;
+            for(int i = 0; i < track.pointsEdgeLeft.size(); i++)
+            {
+                if(track.pointsEdgeLeft[i].y < 3)
+                    edge_counter++;
+            }
+            if(edge_counter > track.pointsEdgeLeft.size() * 0.7)
+            {
+                track.pointsEdgeLeft.resize(5);
+            }
+            edge_counter = 0;
+            for(int i = 0; i < track.pointsEdgeRight.size(); i++)
+            {
+                if(track.pointsEdgeRight[i].y > COLSIMAGE - 3)
+                    edge_counter++;
+            }
+            if(edge_counter > track.pointsEdgeRight.size() * 0.7)
+            {
+                track.pointsEdgeRight.resize(5);
+            }
+
+            break;
+        }
+        }
+
+        if (farmlandStep == FarmlandStep::None)
+            return false;
+        else
+            return true;
+    }
+
     /**
      * @brief 农田区域检测与路径规划
      *
@@ -61,24 +352,32 @@ public:
         {
         case FarmlandStep::None:
         {
-            searchCorn(predict); // 玉米检测
-            if (pointCorn.x > 0 || pointCorn.y > 0)
-                counterRec++;
-
+            // searchCorn(predict); // 玉米检测
+            // if (pointCorn.x > 0 || pointCorn.y > 0)
+            //     counterRec++;
+			for (int i = 0; i < predict.size(); i++)
+			{
+				if (predict[i].label == LABEL_CORN && predict[i].y + predict[i].height / 2 > 60)
+				{
+					counterRec++;
+                    std::cout << counterRec << "\t" << counterSession << std::endl;
+					break;
+				}
+			}
             if (counterRec)
             {
-                counterSession++;
-                if (counterRec > params.FarmlandCheck && counterSession < params.FarmlandCheck * 2)
+                if (counterRec > params.FarmlandCheck && counterSession < params.FarmlandCheck + 3)
                 {
                     farmlandStep = FarmlandStep::Enable; // 农田区域使能
                     counterRec = 0;
                     counterSession = 0;
                 }
-                else if (counterSession >= params.FarmlandCheck * 2)
+                else if (counterSession >= params.FarmlandCheck + 3)
                 {
                     counterRec = 0;
                     counterSession = 0;
                 }
+                counterSession++;
             }
             break;
         }
@@ -87,7 +386,7 @@ public:
             if (track.pointsEdgeLeft.size() < params.EnterLine && track.pointsEdgeRight.size() < params.EnterLine)
             {
                 counterRec++;
-                if (counterRec > 2)
+                if (counterRec > 1)
                 {
                     counterSession = 0;
                     counterRec = 0;
@@ -144,9 +443,9 @@ public:
             line_extend(track.pointsEdgeLeft);
             line_extend(track.pointsEdgeRight);
             uint16_t size = MIN(track.pointsEdgeLeft.size(), track.pointsEdgeRight.size());
-            if(size > 180)
+            if(size > 160)
             {
-                size = 180;
+                size = 160;
                 track.pointsEdgeRight.resize(size);
                 track.pointsEdgeLeft.resize(size);
             }
@@ -256,14 +555,12 @@ public:
         {
         case FarmlandStep::Enable:
         {
-            _speed += 0.04f;
-            if(_speed > params.Speed)
-                _speed = params.Speed; 
+            _speed = params.Speed; 
             break;
         }
         case FarmlandStep::Cruise:
         {
-            _speed += 0.08f;
+            _speed += 0.02f;
             if(_speed > params.Speed * params.SpeedScale)
                 _speed = params.Speed * params.SpeedScale; 
             break;
@@ -291,14 +588,19 @@ public:
         line(image, Point(image.cols / 2, 0), Point(image.cols / 2, image.rows - 1), Scalar(255, 255, 255), 1);
 
         // 绘制锥桶坐标
-        for (int i = 0; i < pointEdgeDet.size(); i++)
-        {
-            // circle(image, Point(pointEdgeDet[i].y, pointEdgeDet[i].x), 4, Scalar(92, 92, 205), -1); // 锥桶坐标：红色
-            putText(image, to_string(i+1), Point(pointEdgeDet[i].y, pointEdgeDet[i].x), cv::FONT_HERSHEY_TRIPLEX, 0.5, cv::Scalar(0, 0, 255), 1, CV_AA);
-        }
+        // for (int i = 0; i < pointEdgeDet.size(); i++)
+        // {
+        //     // circle(image, Point(pointEdgeDet[i].y, pointEdgeDet[i].x), 4, Scalar(92, 92, 205), -1); // 锥桶坐标：红色
+        //     putText(image, to_string(i+1), Point(pointEdgeDet[i].y, pointEdgeDet[i].x), cv::FONT_HERSHEY_TRIPLEX, 0.5, cv::Scalar(0, 0, 255), 1, CV_AA);
+        // }
 
         circle(image, Point(pointCorn.y, pointCorn.x), 3, Scalar(8, 112, 247), -1); // 玉米坐标绘制：橙色
         circle(image, Point(pointAverage.y, pointAverage.x), 5, Scalar(226, 43, 138), -1); // 紫色
+        circle(image, Point(pointTop.y, pointTop.x), 5, Scalar(226, 43, 138), -1);
+
+		putText(image, to_string(counterRec),
+				Point(COLSIMAGE / 2 - 10, ROWSIMAGE - 20), cv::FONT_HERSHEY_TRIPLEX,
+				0.5, cv::Scalar(0, 0, 255), 1, CV_AA);
 
         // 赛道边缘
         for (int i = 0; i < track.pointsEdgeLeft.size(); i++)
@@ -325,11 +627,40 @@ public:
             break;
         }
         putText(image, state, Point(COLSIMAGE / 2 - 10, 20), cv::FONT_HERSHEY_TRIPLEX, 0.3, cv::Scalar(0, 255, 0), 1, CV_AA);
-
-        putText(image, to_string(indexDebug), Point(COLSIMAGE / 2 - 10, ROWSIMAGE - 20), cv::FONT_HERSHEY_TRIPLEX, 0.3, cv::Scalar(0, 0, 255), 1, CV_AA);
     }
 
 private:
+    /**
+	 * @brief 在俯视域计算预瞄点的切线斜率
+	 *
+     * @param line 图像域下的中线
+	 * @param index 预瞄点的下标号
+	 * @param size 开窗大小
+	 * @return 斜率
+	 */
+    double perspectiveTangentSlope(std::vector<POINT> line, uint16_t index, int size)
+    {
+        if(line.size() < 5)
+            return 0;
+            
+		// End
+		Point2d endIpm = ipm.homography(
+			Point2d(line[inRange(line, index-size)].y, line[inRange(line, index-size)].x)); // 透视变换
+		POINT p1 = POINT(endIpm.y, endIpm.x);
+
+		// Start
+		Point2d startIpm = ipm.homography(
+			Point2d(line[inRange(line, index+size)].y, line[inRange(line, index+size)].x)); // 透视变换
+		POINT p0 = POINT(startIpm.y, startIpm.x);
+
+        float dx = p1.x - p0.x;
+        float dy = p1.y - p0.y;
+        if(dx == 0)
+            return 10.0;
+        else
+            return dy / dx;
+    }
+
     /**
      * @brief 玉米坐标检测
      *
@@ -443,6 +774,11 @@ private:
     uint16_t counterFild = 0;
     float _speed = 0.0f;
     int indexDebug = 0;
+
+    POINT pointTop = POINT(ROWSIMAGE - 1, 0);
+    vector<POINT> pointsEdgeLeftLast;  // 记录前一场左边缘点集
+    vector<POINT> pointsEdgeRightLast; // 记录前一场右边缘点集
+
     enum FarmlandStep
     {
         None = 0, // 未触发

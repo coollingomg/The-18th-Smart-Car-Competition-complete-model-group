@@ -288,6 +288,13 @@ void line(vector<POINT> &line, uint16_t p0, POINT p1)
 	}
 }
 
+uint16_t inRange(std::vector<POINT> line, int item)
+{
+    if(item < 0) return 0;
+    else if(item > line.size() - 1) return line.size() - 1;
+    else return item;
+}
+
 //生成随机图片名称
 std::string generateRandomFileName(std::string img_path)
 {

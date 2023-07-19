@@ -16,7 +16,7 @@ int main(int argc, char const *argv[])
 {
 	// PPNC初始化
 	PPNCDetection predict;
-	if (!predict.init("../res/model/yolov3_mobilenet_v1")) // AI推理初始化
+	if (!predict.init("../res/model/yolov3_mobilenet_v1_0714")) // AI推理初始化
 		return 1;
 
 	// 摄像头初始化

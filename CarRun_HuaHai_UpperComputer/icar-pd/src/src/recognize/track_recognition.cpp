@@ -45,6 +45,8 @@ public:
     POINT garageEnable = POINT(0, 0); // 车库识别标志：（x=1/0，y=row)
     uint16_t rowCutUp = 30;           // 图像顶部切行
     uint16_t rowCutBottom = 10;       // 图像底部切行
+    POINT pointLeftLast;              // 用于连通性判断
+    POINT pointRightLast;
 
     void reset()
     {
@@ -83,15 +85,17 @@ public:
 
         if (!isResearch)
         {
-            pointsEdgeLeft.clear();              // 初始化边缘结果
-            pointsEdgeRight.clear();             // 初始化边缘结果
-            widthBlock.clear();                  // 初始化色块数据
-            spurroad.clear();                    // 岔路信息
-            validRowsLeft = 0;                   // 边缘有效行数（左）
-            validRowsRight = 0;                  // 边缘有效行数（右）
-            flagStartBlock = true;               // 搜索到色块起始行的标志（行）
-            garageEnable = POINT(0, 0);          // 车库识别标志初始化
-            if(rowStart < rowCutBottom)
+            pointsEdgeLeft.clear();     // 初始化边缘结果
+            pointsEdgeRight.clear();    // 初始化边缘结果
+            widthBlock.clear();         // 初始化色块数据
+            spurroad.clear();           // 岔路信息
+            validRowsLeft = 0;          // 边缘有效行数（左）
+            validRowsRight = 0;         // 边缘有效行数（右）
+            flagStartBlock = true;      // 搜索到色块起始行的标志（行）
+            garageEnable = POINT(0, 0); // 车库识别标志初始化
+            pointLeftLast = POINT(0, 0);
+            pointRightLast = POINT(0, 0);
+            if (rowStart < rowCutBottom)
                 rowStart = rowCutBottom;
             rowStart = ROWSIMAGE - rowStart; // 默认底部起始行
         }
@@ -109,7 +113,7 @@ public:
             }
 
             flagStartBlock = false; // 搜索到色块起始行的标志（行）
-        } 
+        }
 
         //  开始识别赛道左右边缘
         for (int row = rowStart; row > rowCutUp; row--) // 有效行：10~220
@@ -166,7 +170,7 @@ public:
                         {
                             endBlock[counterBlock++] = col;
                             if (counterBlock >= end(endBlock) - begin(endBlock))
-                                break;//在记录了足够数量的色块之后，提前退出循环，以加快执行速度。
+                                break; // 在记录了足够数量的色块之后，提前退出循环，以加快执行速度。
                         }
                     }
                 }
@@ -211,6 +215,10 @@ public:
                     pointsEdgeRight.push_back(pointTmp);
                     widthBlock.emplace_back(row, endBlock[indexWidestBlock] - startBlock[indexWidestBlock]);
                     counterSearchRows++;
+                    {
+                        pointLeftLast = pointsEdgeLeft[pointsEdgeLeft.size() - 1];
+                        pointRightLast = pointsEdgeRight[pointsEdgeRight.size() - 1];
+                    }
                 }
                 spurroadEnable = false;
             }
@@ -258,10 +266,10 @@ public:
                             distance.push_back(widthGarage[indexGarage[i]] - widthGarage[indexGarage[i - 1]]);
                         }
                         double var = sigma(distance);
-                        if (var < 5.0) // 经验参数
+                        if (var < 8.0 && row > rowCutUp + COLSIMAGE / 10) // 经验参数
                         {
                             garageEnable.x = 1;                      // 车库标志使能
-                            garageEnable.y = pointsEdgeRight.size(); // 斑马线行序号
+                            garageEnable.y = row; // 斑马线行号
                         }
                     }
                 }
@@ -270,8 +278,10 @@ public:
                 vector<int> indexBlocks;               // 色块序号（行）
                 for (int i = 0; i < counterBlock; i++) // 上下行色块的连通性判断
                 {
-                    int g_cover = min(endBlock[i], pointsEdgeRight[pointsEdgeRight.size() - 1].y) -
-                                  max(startBlock[i], pointsEdgeLeft[pointsEdgeLeft.size() - 1].y);
+                    int g_cover = min(endBlock[i], pointRightLast.y) -
+                                  max(startBlock[i], pointLeftLast.y);
+                    // int g_cover = min(endBlock[i], pointsEdgeRight[pointsEdgeRight.size() - 1].y) -
+                    //               max(startBlock[i], pointsEdgeLeft[pointsEdgeLeft.size() - 1].y);
                     if (g_cover >= 0)
                     {
                         indexBlocks.push_back(i);
@@ -284,9 +294,9 @@ public:
                 }
                 else if (indexBlocks.size() == 1) // 只存在单个色块，正常情况，提取边缘信息
                 {
-                    if (endBlock[indexBlocks[0]] - startBlock[indexBlocks[0]] < COLSIMAGE / 10)
+                    if (endBlock[indexBlocks[0]] - startBlock[indexBlocks[0]] < ROWSIMAGE / 10)
                     {
-                        break;
+                        break;;
                     }
                     pointsEdgeLeft.emplace_back(row, startBlock[indexBlocks[0]]);
                     pointsEdgeRight.emplace_back(row, endBlock[indexBlocks[0]]);
@@ -363,6 +373,19 @@ public:
                     }
                     //------------------------------------------------------------------------------------
                 }
+                if (pointsEdgeLeft[pointsEdgeLeft.size() - 1].y > 0 || pointsEdgeRight[pointsEdgeRight.size() - 1].y < COLSIMAGE - 1)
+                {
+                    pointLeftLast = pointsEdgeLeft[pointsEdgeLeft.size() - 1];
+                    pointRightLast = pointsEdgeRight[pointsEdgeRight.size() - 1];
+                }
+                if(pointLeftLast.y < 30)
+                {
+                    pointLeftLast.y = 30;
+                }
+                if(pointRightLast.y > COLSIMAGE - 30)
+                {
+                    pointRightLast.y = COLSIMAGE - 30;
+                }
 
                 stdevLeft = stdevEdgeCal(pointsEdgeLeft, ROWSIMAGE); // 计算边缘方差
                 stdevRight = stdevEdgeCal(pointsEdgeRight, ROWSIMAGE);
@@ -406,14 +429,14 @@ public:
             circle(trackImage, Point(spurroad[i].y, spurroad[i].x), 3,
                    Scalar(0, 0, 255), -1); // 红色点
         }
-        if(garageEnable.x)
+        if (garageEnable.x)
         {
             line(trackImage, Point(0, garageEnable.y), Point(trackImage.cols - 1, garageEnable.y), Scalar(211, 211, 211), 1);
         }
 
-        putText(trackImage, to_string(validRowsRight) + " " + to_string(stdevRight), Point(COLSIMAGE - 100, ROWSIMAGE - 50),
+        putText(trackImage, to_string(pointsEdgeRight.size()) + " " + to_string(stdevRight), Point(COLSIMAGE - 100, ROWSIMAGE - 50),
                 FONT_HERSHEY_TRIPLEX, 0.3, Scalar(0, 0, 255), 1);
-        putText(trackImage, to_string(validRowsLeft) + " " + to_string(stdevLeft), Point(20, ROWSIMAGE - 50),
+        putText(trackImage, to_string(pointsEdgeLeft.size()) + " " + to_string(stdevLeft), Point(20, ROWSIMAGE - 50),
                 FONT_HERSHEY_TRIPLEX, 0.3, Scalar(0, 0, 255), 1);
     }
 
@@ -449,6 +472,366 @@ public:
         }
         else
             return 0;
+    }
+
+    /**
+     * @brief 最小二乘法 一元线性回归
+     *
+     * @param line 边缘点集
+     * @param k    斜率，注意此处的坐标系与习惯不同
+     * @param b
+     */
+    void LeastSquare(vector<POINT> line, double &k, double &b)
+    {
+        if(line.size() < 5)
+        {
+            k = 0;
+            b = 0;
+            return;
+        }
+        double t1 = 0, t2 = 0, t3 = 0, t4 = 0;
+        uint16_t num = line.size();
+        for (int i = 0; i < num; i++)
+        {
+            t1 += line[i].x * line[i].x;
+            t2 += line[i].x;
+            t3 += line[i].y * line[i].x;
+            t4 += line[i].y;
+        }
+        k = (t3 * num - t2 * t4) / (t1 * num - t2 * t2);
+        b = (t1 * t4 - t2 * t3) / (t1 * num - t2 * t2);
+
+        return;
+    }
+    double LeastSquare(vector<POINT> line)
+    {
+        double k = 0, b = 0;
+        LeastSquare(line, k, b);
+        return k;
+    }
+
+    // 计算目标段的最小二乘斜率
+    double LeastSquare(vector<POINT> line, uint16_t start, uint16_t end)
+    {
+        double t1 = 0, t2 = 0, t3 = 0, t4 = 0;
+        uint16_t num = line.size();
+        if (start < 0 || start > num - 1 || end < 0 || end > num)
+        {
+            std::cout << "LeastSqure err !" << std::endl;
+            return 0;
+        }
+
+        for (int i = start; i < end; i++)
+        {
+            t1 += line[i].x * line[i].x;
+            t2 += line[i].x;
+            t3 += line[i].y * line[i].x;
+            t4 += line[i].y;
+        }
+        double k = (t3 * num - t2 * t4) / (t1 * num - t2 * t2);
+        // b = (t1 * t4 - t2 * t3) / (t1 * num - t2 * t2);
+
+        return k;
+    }
+
+    // 计算目标点处切线的斜率
+    double LeastSquare(vector<POINT> line, uint16_t index)
+    {
+        double t1 = 0, t2 = 0, t3 = 0, t4 = 0;
+        uint16_t num = line.size();
+        if (num < 5)
+        {
+            return 0;
+        }
+        int start = index - 2;
+        int end = index + 2;
+        if (start < 0)
+            start = 0;
+        if (end > num)
+            end = num;
+
+        for (int i = start; i < end; i++)
+        {
+            t1 += line[i].x * line[i].x;
+            t2 += line[i].x;
+            t3 += line[i].y * line[i].x;
+            t4 += line[i].y;
+        }
+        double k = (t3 * num - t2 * t4) / (t1 * num - t2 * t2);
+        // b = (t1 * t4 - t2 * t3) / (t1 * num - t2 * t2);
+
+        return k;
+    }
+
+    /**
+     * @brief 得到俯视域下的中线
+     * @param edge 摄像机坐标系下的点集
+     * 
+     * @return 俯视域的点集
+     */
+    std::vector<POINT> line_perspective(std::vector<POINT> pointsEdgeline)
+    {
+        std::vector<POINT> perspectivePoints;
+        for (int i = 0; i < pointsEdgeline.size(); i++)
+        {
+            if(pointsEdgeline[i].y == 0 || pointsEdgeline[i].y == COLSIMAGE - 1)
+                continue;
+                
+            cv::Point2d point2d = ipm.homography(Point2d(pointsEdgeline[i].y, pointsEdgeline[i].x)); // 透视变换
+            perspectivePoints.push_back(POINT(point2d.y, point2d.x));
+        }
+
+        return perspectivePoints;
+    }
+
+    /**
+     * @brief 摄像机坐标系下的中线
+     * @param edge 俯视域下的点集
+     * 
+     * @return 摄像机坐标系下的点集
+     */
+    std::vector<POINT> line_perspectiveInv(std::vector<POINT> perspectivePoints)
+    {
+        std::vector<POINT> pointsEdgeline;
+        for (int i = 0; i < perspectivePoints.size(); i++)
+        {
+            cv::Point2d point2d = ipm.homographyInv(Point2d(perspectivePoints[i].y, perspectivePoints[i].x)); // 透视变换
+            POINT edgePoint = POINT(point2d.y, point2d.x);
+            // if (edgePoint.x >= ROWSIMAGE)
+            //     edgePoint.x = ROWSIMAGE - 1;
+
+            // else if (edgePoint.x < 0)
+            //     edgePoint.x = 0;
+            if(edgePoint.x >= ROWSIMAGE || edgePoint.x < 0)
+                continue;
+            else if (edgePoint.y >= COLSIMAGE)
+                edgePoint.y = COLSIMAGE - 1;
+            else if (edgePoint.y < 0)
+                edgePoint.y = 0;
+
+            pointsEdgeline.push_back(edgePoint);
+        }
+
+        return pointsEdgeline;
+    }
+
+	/**
+	 * @brief 在俯视域由左边缘预测右边缘
+	 *
+	 * @param pointsEdgeLeft
+	 * @return vector<POINT>
+	 */
+	vector<POINT> predictEdgeRight(vector<POINT> pointsEdgeLeft, bool bezier = true)
+	{
+		int offset = 120; // 右边缘平移尺度
+		vector<POINT> pointsEdgeRight;
+		if (pointsEdgeLeft.size() < 3)
+			return pointsEdgeRight;
+
+        if(!bezier)
+        {
+            for(int i = 0; i < pointsEdgeLeft.size(); i++)
+            {
+                Point2d edgeIpm = ipm.homography(
+                    Point2d(pointsEdgeLeft[i].y, pointsEdgeLeft[i].x)); // 透视变换
+                Point2d prefictRight = Point2d(edgeIpm.x + offset, edgeIpm.y);
+                Point2d edgeIipm = ipm.homographyInv(prefictRight); // 反透视变换
+                POINT edgePoint = POINT(edgeIipm.y, edgeIipm.x);
+                if (edgePoint.x >= ROWSIMAGE)
+                    edgePoint.x = ROWSIMAGE - 1;
+
+                else if (edgePoint.x < 0)
+                    edgePoint.x = 0;
+
+                else if (edgePoint.y >= COLSIMAGE)
+                    edgePoint.y = COLSIMAGE - 1;
+                else if (edgePoint.y < 0)
+                    edgePoint.y = 0;
+
+                pointsEdgeRight.push_back(edgePoint);
+            }
+            return pointsEdgeRight;
+        }
+
+		// Start
+		Point2d startIpm = ipm.homography(
+			Point2d(pointsEdgeLeft[0].y, pointsEdgeLeft[0].x)); // 透视变换
+		Point2d prefictRight = Point2d(startIpm.x + offset, startIpm.y);
+		Point2d startIipm = ipm.homographyInv(prefictRight); // 反透视变换
+		POINT startPoint = POINT(startIipm.y, startIipm.x);
+
+		// Middle
+		Point2d middleIpm = ipm.homography(
+			Point2d(pointsEdgeLeft[pointsEdgeLeft.size() / 2].y,
+					pointsEdgeLeft[pointsEdgeLeft.size() / 2].x)); // 透视变换
+		prefictRight = Point2d(middleIpm.x + offset, middleIpm.y);
+		Point2d middleIipm = ipm.homographyInv(prefictRight); // 反透视变换
+		POINT midPoint = POINT(middleIipm.y, middleIipm.x);	  // 补线中点
+
+		// End
+		Point2d endIpm = ipm.homography(
+			Point2d(pointsEdgeLeft[pointsEdgeLeft.size() - 1].y,
+					pointsEdgeLeft[pointsEdgeLeft.size() - 1].x)); // 透视变换
+		prefictRight = Point2d(endIpm.x + offset, endIpm.y);
+		Point2d endtIipm = ipm.homographyInv(prefictRight); // 反透视变换
+		POINT endPoint = POINT(endtIipm.y, endtIipm.x);
+
+		// 补线
+		vector<POINT> input = {startPoint, midPoint, endPoint};
+		vector<POINT> repair = Bezier(0.05, input);
+
+		for (int i = 0; i < repair.size(); i++)
+		{
+			if (repair[i].x >= ROWSIMAGE)
+				repair[i].x = ROWSIMAGE - 1;
+
+			else if (repair[i].x < 0)
+				repair[i].x = 0;
+
+			else if (repair[i].y >= COLSIMAGE)
+				repair[i].y = COLSIMAGE - 1;
+			else if (repair[i].y < 0)
+				repair[i].y = 0;
+
+			pointsEdgeRight.push_back(repair[i]);
+		}
+
+		return pointsEdgeRight;
+	}
+
+	/**
+	 * @brief 在俯视域由右边缘预测左边缘
+	 *
+	 * @param pointsEdgeRight
+	 * @return vector<POINT>
+	 */
+	vector<POINT> predictEdgeLeft(vector<POINT> pointsEdgeRight, bool bezier = true)
+	{
+		int offset = 120; // 右边缘平移尺度
+		vector<POINT> pointsEdgeLeft;
+		if (pointsEdgeRight.size() < 3)
+			return pointsEdgeLeft;
+
+        if(!bezier)
+        {
+            for(int i = 0; i < pointsEdgeRight.size(); i++)
+            {
+                Point2d edgeIpm = ipm.homography(
+                    Point2d(pointsEdgeRight[i].y, pointsEdgeRight[i].x)); // 透视变换
+                Point2d prefictRight = Point2d(edgeIpm.x - offset, edgeIpm.y);
+                Point2d edgeIipm = ipm.homographyInv(prefictRight); // 反透视变换
+                POINT edgePoint = POINT(edgeIipm.y, edgeIipm.x);
+                if (edgePoint.x >= ROWSIMAGE)
+                    edgePoint.x = ROWSIMAGE - 1;
+
+                else if (edgePoint.x < 0)
+                    edgePoint.x = 0;
+
+                else if (edgePoint.y >= COLSIMAGE)
+                    edgePoint.y = COLSIMAGE - 1;
+                else if (edgePoint.y < 0)
+                    edgePoint.y = 0;
+
+                pointsEdgeLeft.push_back(edgePoint);
+            }
+            return pointsEdgeLeft;
+        }
+
+		// Start
+		Point2d startIpm = ipm.homography(
+			Point2d(pointsEdgeRight[0].y, pointsEdgeRight[0].x)); // 透视变换
+		Point2d prefictLeft = Point2d(startIpm.x - offset, startIpm.y);
+		Point2d startIipm = ipm.homographyInv(prefictLeft); // 反透视变换
+		POINT startPoint = POINT(startIipm.y, startIipm.x);
+
+		// Middle
+		Point2d middleIpm = ipm.homography(
+			Point2d(pointsEdgeRight[pointsEdgeRight.size() / 2].y,
+					pointsEdgeRight[pointsEdgeRight.size() / 2].x)); // 透视变换
+		prefictLeft = Point2d(middleIpm.x - offset, middleIpm.y);
+		Point2d middleIipm = ipm.homographyInv(prefictLeft); // 反透视变换
+		POINT midPoint = POINT(middleIipm.y, middleIipm.x);	 // 补线中点
+
+		// End
+		Point2d endIpm = ipm.homography(
+			Point2d(pointsEdgeRight[pointsEdgeRight.size() - 1].y,
+					pointsEdgeRight[pointsEdgeRight.size() - 1].x)); // 透视变换
+		prefictLeft = Point2d(endIpm.x - offset, endIpm.y);
+		Point2d endtIipm = ipm.homographyInv(prefictLeft); // 反透视变换
+		POINT endPoint = POINT(endtIipm.y, endtIipm.x);
+
+		// 补线
+
+		vector<POINT> input = {startPoint, midPoint, endPoint};
+		vector<POINT> repair = Bezier(0.05, input);
+
+		for (int i = 0; i < repair.size(); i++)
+		{
+			if (repair[i].x >= ROWSIMAGE)
+				repair[i].x = ROWSIMAGE - 1;
+
+			else if (repair[i].x < 0)
+				repair[i].x = 0;
+
+			else if (repair[i].y >= COLSIMAGE)
+				repair[i].y = COLSIMAGE - 1;
+			else if (repair[i].y < 0)
+				repair[i].y = 0;
+
+			pointsEdgeLeft.push_back(repair[i]);
+		}
+
+		return pointsEdgeLeft;
+	}
+
+	/**
+	 * @brief 在俯视域由左边缘预测中线
+	 *
+	 * @param size 计算切点曲率时开窗大小
+	 * @return vector<POINT>
+	 */
+    std::vector<POINT> perspectiveMidFromLeft(int size)
+    {
+        int offset = 60;
+        std::vector<POINT> centerEdge;
+        std::vector<POINT> perspectiveLeft = line_perspective(pointsEdgeLeft);
+        for(int i = size; i < perspectiveLeft.size() - size; i++)
+        {
+            float dx = perspectiveLeft[inRange(perspectiveLeft, i+size)].x - perspectiveLeft[inRange(perspectiveLeft, i-size)].x;
+            float dy = perspectiveLeft[inRange(perspectiveLeft, i+size)].y - perspectiveLeft[inRange(perspectiveLeft, i-size)].y;
+            float dn = std::sqrt(dx * dx + dy * dy);
+            dx /= dn;
+            dy /= dn;
+
+            centerEdge.push_back(POINT(perspectiveLeft[i].x + offset * dy, perspectiveLeft[i].y - offset * dx));
+        }
+
+        return centerEdge;
+    }
+
+	/**
+	 * @brief 在俯视域由左边缘预测中线
+	 *
+	 * @param size 计算切点曲率时开窗大小
+	 * @return vector<POINT>
+	 */
+    std::vector<POINT> perspectiveMidFromRight(int size)
+    {
+        int offset = 60;
+        std::vector<POINT> centerEdge;
+        std::vector<POINT> perspectiveRight = line_perspective(pointsEdgeRight);
+        for(int i = size; i < perspectiveRight.size() - size; i++)
+        {
+            float dx = perspectiveRight[inRange(perspectiveRight, i+size)].x - perspectiveRight[inRange(perspectiveRight, i-size)].x;
+            float dy = perspectiveRight[inRange(perspectiveRight, i+size)].y - perspectiveRight[inRange(perspectiveRight, i-size)].y;
+            float dn = std::sqrt(dx * dx + dy * dy);
+            dx /= dn;
+            dy /= dn;
+
+            centerEdge.push_back(POINT(perspectiveRight[i].x - offset * dy, perspectiveRight[i].y + offset * dx));
+        }
+
+        return centerEdge;
     }
 
 private:

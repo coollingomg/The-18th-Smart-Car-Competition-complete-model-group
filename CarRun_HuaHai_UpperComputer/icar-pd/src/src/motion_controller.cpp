@@ -44,6 +44,7 @@ public:
         float speedAI = 1.0;        // ai识别速度
         float speedCorners = 1.0;   // 贴弯速度
         float speedcoiled = 1.0;    // 连续弯道速度
+
         float runP1 = 0.9;          // 一阶比例系数：直线控制量
         float runP2 = 0.018;        // 二阶比例系数：弯道控制量
         float runP3 = 0.0;          // 三阶比例系数：弯道控制量
@@ -51,11 +52,15 @@ public:
         float runP2_ai = 1.0;       // ai二阶比例系数：弯道控制量
         float turnP = 3.5;          // 一阶比例系数：转弯控制量
         float turnD = 3.5;          // 一阶微分系数：转弯控制量
+
         float Kp = 1000.0;
         float Ki = 0.0;
         float Kd = 0.0;
+        float Kv = 0.0;
+
         uint16_t rowCutUp = 30;     // 图像顶部切行
         uint16_t rowCutBottom = 10; // 图像顶部切行
+
         bool Debug = false;
         bool Button = false;
         bool SaveImage = false;
@@ -71,7 +76,7 @@ public:
         string pathModel = "res/model/yolov3_mobilenet_v1";
         NLOHMANN_DEFINE_TYPE_INTRUSIVE(
             Params, MidLine, speedLow, speedHigh, speedAI, speedCorners, speedcoiled, runP1, runP2, runP3, runP1_ai, runP2_ai, 
-            turnP, turnD, rowCutUp, rowCutBottom, Kp, Ki, Kd, Debug, Button, SaveImage, CloseLoop, GarageEnable, RingEnable, CrossEnable, 
+            turnP, turnD, rowCutUp, rowCutBottom, Kp, Ki, Kd, Kv, Debug, Button, SaveImage, CloseLoop, GarageEnable, RingEnable, CrossEnable, 
             StopEnable, BridgeEnable, SlowzoneEnable, DepotEnable, FarmlandEnable, pathModel); // 添加构造函数
     };
 

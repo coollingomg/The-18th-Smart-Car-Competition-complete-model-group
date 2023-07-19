@@ -43,15 +43,8 @@ void icm20602_pose_init(void)
 
     //陀螺仪零飘初始化
     gyroOffsetInit();
-
-//    //地址关联
-//    icm20602_pose.interface.data.a_x = &Gyroscope_g_and_a_data_get.a_x;
-//    icm20602_pose.interface.data.a_y = &Gyroscope_g_and_a_data_get.a_y;
-//    icm20602_pose.interface.data.a_z = &Gyroscope_g_and_a_data_get.a_z;
-//    icm20602_pose.interface.data.g_x = &Gyroscope_g_and_a_data_get.g_x;
-//    icm20602_pose.interface.data.g_y = &Gyroscope_g_and_a_data_get.g_y;
-//    icm20602_pose.interface.data.g_z = &Gyroscope_g_and_a_data_get.g_z;
 }
+
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     陀螺仪姿态角解算更新
@@ -92,6 +85,7 @@ void icm20602_attitude_Angle_handle(void)
 
 //        //姿态角解算
 //        IMUupdate(Gyroscope_g_and_a_data_get, Gyroscope_attitude_Angle_data_get);
+        //卡尔曼对数据进行滤波
         Gyroscope_g_and_a_data_get.g_x = Kalman_Filter_Fun(&kalman_struck1, Gyroscope_g_and_a_data_get.g_x);
 
         //标志位清零

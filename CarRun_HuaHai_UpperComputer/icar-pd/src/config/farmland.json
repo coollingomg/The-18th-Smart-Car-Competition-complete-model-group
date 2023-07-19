@@ -1,13 +1,13 @@
 {
     "FarmlandCheck": 2,
-    "Speed": 0.8,
-    "SpeedScale": 0.6,
+    "Speed": 1.0,
+    "SpeedScale": 1.2,
     "CloseWidth" : 4,
     "CloseHeigth" : 4,
     "EnrodeWidth" : 100,
-    "EnrodeHeigth" : 50,
+    "EnrodeHeigth" : 60,
     "OpenSize": 50,
-    "EnterLine": 150,
+    "EnterLine": 160,
     "record": [
         {
             "#FarmlandCheck": "农田区域确认帧数",

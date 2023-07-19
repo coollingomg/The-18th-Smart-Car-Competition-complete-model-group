@@ -61,5 +61,6 @@
         "optional": "cpp",
         "codecvt": "cpp",
         "filesystem": "cpp"
-    }
+    },
+    "cmake.sourceDirectory": "/home/edgeboard/workplace/icar-pd/src"
 }

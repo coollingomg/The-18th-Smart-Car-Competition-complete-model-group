@@ -32,11 +32,14 @@ public:
     void Stop()
     {
         _loop = false;
-        _thread->join();
+        if(_thread->joinable())
+            _thread->join();
         if(_cap->isOpened())
         {
             _cap->release();
         }
+
+        std::cout << "camera exit" << std::endl;
     }
 
     void run()
@@ -50,14 +53,14 @@ public:
         _cap->set(cv::CAP_PROP_FPS, _rate);
         _cap->set(cv::CAP_PROP_FRAME_WIDTH, _col);
         _cap->set(cv::CAP_PROP_FRAME_HEIGHT, _row);
-        _cap->set(cv::CAP_PROP_ZOOM, 14);
+        _cap->set(cv::CAP_PROP_ZOOM, 12);
         {
             // _cap->set(cv::CAP_PROP_BRIGHTNESS, 28);    //亮度
             // _cap->set(cv::CAP_PROP_CONTRAST, 50);      //对比度
             // _cap->set(cv::CAP_PROP_SATURATION, 108);    //饱和度
             // _cap->set(cv::CAP_PROP_SHARPNESS, 40);     //清晰度
             // _cap->set(cv::CAP_PROP_GAIN, 100);          //增益
-            _cap->set(cv::CAP_PROP_AUTO_EXPOSURE, 0.12);  //自动曝光开关
+            _cap->set(cv::CAP_PROP_AUTO_EXPOSURE, 0.15);  //自动曝光开关
             // _cap->set(cv::CAP_PROP_EXPOSURE, -9);      //曝光级别
         }
         CheckCap();
@@ -84,7 +87,7 @@ public:
     {
         cv::Mat frame;
         std::unique_lock<std::mutex> lock(_mutex);
-        while(_frame == nullptr)
+        while(_frame == nullptr)//这种方法有问题，但因为调用时机，巧合地避免了
         {
             cond_.wait(lock);
         }

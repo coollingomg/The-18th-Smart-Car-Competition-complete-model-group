@@ -29,8 +29,6 @@ void core1_main(void)
     adc_Init();
     //按键初始化
     my_key_init();
-    //调试蓝牙接口
-    BLUETOOTH_uart_init(bluetooth_using_uart, bluetooth_using_uart_baud, uart_booluteeth_pin_tx, uart_booluteeth_pin_rx);
     //偏航角加速度滤波，卡尔曼参数初始化
     Kalman_Filter_Init(&kalman_struck1);
 
@@ -42,8 +40,6 @@ void core1_main(void)
 
 //-----------------------------------此处编写需要循环执行的代码-----------------------------------
 
-        //蓝牙串口发送数据处理
-        Wireless_Handle();
         //电压采样处理
         adc_Handle();
         //姿态角解算处理函数

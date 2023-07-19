@@ -40,6 +40,8 @@ int core0_main(void)
     Buzzer_Init();
     //与eb通信初始化
     USB_uart_init(eb_using_uart, eb_using_uart_baud, uart_eb_pin_tx, uart_eb_pin_rx);
+//    //调试蓝牙接口
+//    BLUETOOTH_uart_init(bluetooth_using_uart, bluetooth_using_uart_baud, uart_booluteeth_pin_tx, uart_booluteeth_pin_rx);
     //通信连接提示灯初始化
     gpio_init(P20_9, GPO, 1, GPO_PUSH_PULL);
     //初始化完成后，拉高电平唤醒电机驱动板
@@ -48,6 +50,8 @@ int core0_main(void)
     gpio_init(P21_5, GPO, 1, GPO_PUSH_PULL);
     //卡尔曼参数初始化，电机返回速度滤波
     Kalman_Filter_Init(&kalman_struck);
+//    //卡尔曼参数初始化，电机设定速度滤波
+//    Kalman_Filter_Init(&kalman_struck2);
     //智能车控制参数初始化
     ICAR_Init();
     //初始化完成，蜂鸣器提示音
@@ -69,6 +73,8 @@ int core0_main(void)
         Buzzer_Handle();
         //智能车控制
         ICAR_Handle();
+//        //蓝牙串口发送数据处理
+//        Wireless_Handle();
 
 //----------------------------------此处编写需要循环执行的代码----------------------------------
 

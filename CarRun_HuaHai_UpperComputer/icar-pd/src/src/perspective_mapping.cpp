@@ -33,6 +33,7 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/opencv.hpp>
 #include <stdio.h>
+#include "../include/common.hpp"
 
 using namespace cv;
 using namespace std;
@@ -52,8 +53,8 @@ public:
     // [第二版无带畸变镜头参数]
     m_origPoints.push_back(Point2f(0, 214));   // 左下
     m_origPoints.push_back(Point2f(319, 214)); // 右下
-    m_origPoints.push_back(Point2f(192, 0));   // 右上
-    m_origPoints.push_back(Point2f(128, 0));   // 左上
+    m_origPoints.push_back(Point2f(184, 15));   // 右上
+    m_origPoints.push_back(Point2f(136, 15));   // 左上
 
     // 矫正域：分辨率320x240
     // The 4-points correspondences in the destination image

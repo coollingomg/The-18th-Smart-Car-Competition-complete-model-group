@@ -35,8 +35,8 @@
 
 //宏定义pi
 #define PI_MOTOR                    3.1415926535898f
-//电机控制周期T：10ms
-#define MOTOR_CONTROL_CYCLE         0.003f
+//电机控制周期T：5ms
+#define MOTOR_CONTROL_CYCLE         0.005f
 
 //定义电机控制结构体
 typedef struct

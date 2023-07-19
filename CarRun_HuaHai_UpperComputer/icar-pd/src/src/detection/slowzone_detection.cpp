@@ -56,7 +56,7 @@ public:
         {
             for (int i = 0; i < predict.size(); i++)
             {
-                if (predict[i].label == LABEL_BUMP || predict[i].label == LABEL_PIG)
+                if ((predict[i].label == LABEL_BUMP && predict[i].y + predict[i].height / 2 > 70) || (predict[i].label == LABEL_PIG && predict[i].y + predict[i].height / 2 > 70))
                 {
                     counterRec++;
                     break;
@@ -66,7 +66,7 @@ public:
             if (counterRec)
             {
                 counterSession++;
-                if (counterRec >= params.SlowzoneCheck && counterSession < params.SlowzoneCheck * 2)
+                if (counterRec >= params.SlowzoneCheck && counterSession < params.SlowzoneCheck * 2 + 1)
                 {
                     counterRec = 0;
                     counterSession = 0;
@@ -74,7 +74,7 @@ public:
                     _slowZoneEnable = true; // 检测到慢行区
                     return;
                 }
-                else if (counterSession >= params.SlowzoneCheck * 2)
+                else if (counterSession >= params.SlowzoneCheck * 2 + 1)
                 {
                     counterRec = 0;
                     counterSession = 0;
