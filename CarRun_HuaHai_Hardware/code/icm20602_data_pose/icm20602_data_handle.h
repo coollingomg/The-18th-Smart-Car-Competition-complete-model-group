@@ -53,7 +53,7 @@ void icm20602_pose_init                 (void);                                /
 void gyroOffsetInit                     (void);                                //陀螺仪零漂初始化
 void icm20602_attitude_Angle_handle     (void);                                //姿态角解算
 void icm20602_attitude_Angle_Timer      (void);                                //线程计时
-void IMUupdate(Gyroscope_g_and_a_data Gyroscope_g_and_a_data_get, Gyroscope_attitude_Angle Gyroscope_attitude_Angle_data_get);
+void IMUupdate(Gyroscope_g_and_a_data Gyroscope_g_and_a_data_get_t, Gyroscope_attitude_Angle *Gyroscope_attitude_Angle_data_get_t);
 //==================================================ICM20602_DATA_HANDLE 基础函数==================================================
 
 #endif /* CODE_ICM20602_DATA_HANDLE_H_ */

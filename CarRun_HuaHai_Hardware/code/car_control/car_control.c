@@ -4,12 +4,15 @@
  *  Created on: 2023年3月27日
  *      Author: wzl
  */
+
+
 #include "voltage_sampling/voltage_sampling.h"
 #include "car_control/car_control.h"
 #include "motor/motor.h"
 #include "servo/servo.h"
 #include "uart/uart.h"
 #include "key/key.h"
+
 
 //定义小车控制参数到的结构体
 IcarStruct icarStr;
@@ -53,7 +56,7 @@ void ICAR_Timer(void)
 
 
 //-------------------------------------------------------------------------------------------------------------------
-// 函数简介     智能车综合处理函数，一直循环，无需线程
+// 函数简介     智能车综合处理函数
 // 参数说明     void
 // 返回参数     void
 //-------------------------------------------------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 #include "zf_common_headfile.h"
 #pragma section all "cpu1_dsram"
-// 将本语句与#pragma section all restore语句之间的全局变量都放在CPU1的RAM中
+
+
 
 //包含头文件
 #include "icm20602_data_pose/icm20602_data_handle.h"
@@ -42,6 +43,8 @@ void core1_main(void)
 
         //电压采样处理
         adc_Handle();
+        //数据处理
+        USB_Edgeboard_Handle();
         //姿态角解算处理函数
         icm20602_attitude_Angle_handle();
 

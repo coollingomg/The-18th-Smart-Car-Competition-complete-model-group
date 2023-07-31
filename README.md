@@ -3,6 +3,7 @@
 ## 文件结构
 - .metadata 为英飞凌IDE编译生成的文件，**勿动**
 - CarRun_HuaHai_Hardware 为下位机程序源代码
+- CarRun_HuaHai_Hardware_RTT 为移植了rtt操作系统的下位机程序源代码（放弃移植）
 - CarRun_HuaHai_UpperComputer 为上位机相关内容
 ---
 ## 智能车底层控制源码

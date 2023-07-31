@@ -4,6 +4,8 @@
  *  Created on: 2023年3月20日
  *      Author: wzl
  */
+
+
 #ifndef CODE_MOTOR_MOTOR_H_
 #define CODE_MOTOR_MOTOR_H_
 
@@ -11,17 +13,10 @@
 #include "cpu0_main.h"
 #include "uart/uart.h"
 
-//宏定义控制方式,0为高低电平控制正反装；1为两路pwm控制正反转
-#define motor_control_measure   0
 
 //电机pwm输出引脚宏定义
-#if motor_control_measure
-    #define pwm_positive    51      //使用的ATOM1_CH0_P21_2
-    #define pwm_nagetive    70      //使用的ATOM1_CH0_P21_4
-#else
-    #define pwm_rotation    70      //使用的ATOM1_CH0_P21_4
-    #define pwm_control     674     //使用的IO引脚控制方向21_2
-#endif
+#define pwm_rotation    70      //使用的ATOM1_CH0_P21_4
+#define pwm_control     674     //使用的IO引脚控制方向21_2
 
 //编码器读入引脚宏定义
 #define encoder_pin_CH1   1         //33.7
@@ -47,6 +42,8 @@ typedef struct
     float DiameterWheel;                        //轮子直径：mm
     uint8_t CloseLoop;                          //开环模式
     uint16_t Counter;                           //线程计数器
+
+    float Current_motor;                        //电机工作电流
 }MotorStruct;
 
 //声明结构体

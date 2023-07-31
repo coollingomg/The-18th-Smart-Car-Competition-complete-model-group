@@ -47,7 +47,8 @@
 		<item key="DIALOG_FONT_NAME" value="1|Microsoft YaHei UI|9.0|0|WINDOWS|1|-12|0|0|0|400|0|0|0|1|0|0|0|0|Microsoft YaHei UI"/>
 	</section>
 	<section name="com.infineon.aurix.buildsystem.importexport.wizard.ui.ImportFromCodeExampleWizardPage">
-		<item key="SELECTED_REPOSITORY" value="100"/>
+		<item key="SELECTED_REPOSITORY" value="200"/>
+		<item key="OUTSIDE_LOCATION" value="E:\improvement_study_data\智能车备赛\Huahai_car_control"/>
 	</section>
 	<section name="ResourceNavigator">
 		<item key="ResourceViewer.STORE_SORT_TYPE" value="1"/>

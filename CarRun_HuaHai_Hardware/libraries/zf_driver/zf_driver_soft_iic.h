@@ -10,9 +10,10 @@ typedef struct
     uint32              sda_pin;                                                // 用于记录对应的引脚编号
     uint8               addr;                                                   // 器件地址 七位地址模式
     uint32              delay;                                                  // 模拟 IIC 软延时时长  0：1370KHz 10：1020KHz 20：757KHz 30: 633KHz  40: 532Khz  50: 448KHz  60: 395KHz  70: 359KHz  80: 324KHz  100: 268KHz  1000：32KHz
-    void               *iic_scl;                                               // 记录 SCL 端口地址
-    void               *iic_sda;                                               // 记录 SDA 端口地址
+    void               *iic_scl;                                                // 记录 SCL 端口地址
+    void               *iic_sda;                                                // 记录 SDA 端口地址
 }soft_iic_info_struct;
+
 
 //==================================================SOFT_IIC 基础函数====================================================
 void        soft_iic_write_8bit             (soft_iic_info_struct *soft_iic_obj, const uint8 data);

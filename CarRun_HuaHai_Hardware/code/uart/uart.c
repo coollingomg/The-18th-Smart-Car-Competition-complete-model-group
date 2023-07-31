@@ -4,6 +4,8 @@
  *  Created on: 2023年3月18日
  *      Author: wzl
  */
+
+
 //包含头文件
 #include "uart.h"
 #include "isr_config.h"
@@ -16,15 +18,15 @@
 #include "timer/timer.h"
 #include "icm20602_data_pose/icm20602_data_handle.h"
 
+
 //定义蓝牙数据结构体
 BlueTooth_data_recevie_Struct Bluetooth_data;
 //定义eb通信数据结构体
 UsbStruct usbStr;
 
 
-
 //-------------------------------------------------------------------------------------------------------------------
-// 函数简介     串口初始化
+// 函数简介     用于与上位机通信的串口初始化
 // 参数说明     uartn           串口模块号(UART_0,UART_1,UART_2,UART_3)
 // 参数说明     baud            串口波特率
 // 参数说明     tx_pin          串口发送引脚
@@ -33,14 +35,14 @@ UsbStruct usbStr;
 //-------------------------------------------------------------------------------------------------------------------
 void USB_uart_init(uart_index_enum uartn, uint32 baud, uart_tx_pin_enum tx_pin, uart_rx_pin_enum rx_pin)
 {
-    //串口初始化
+    // 串口初始化
     uart_init(uartn, baud, tx_pin, rx_pin);
 
-    //开启串口中断
+    // 开启串口中断
     uart_tx_interrupt(uartn, 1);
     uart_rx_interrupt(uartn, 1);
 
-    //UsbStruct数据初始化
+    // UsbStruct数据初始化
     usbStr.counter = 0;                         //连接时间计数器初始化为0
     usbStr.receiveFinished = false;
     usbStr.receiveStart = false;
@@ -52,7 +54,7 @@ void USB_uart_init(uart_index_enum uartn, uint32 baud, uart_tx_pin_enum tx_pin, 
 
 
 //-------------------------------------------------------------------------------------------------------------------
-// 函数简介     串口初始化
+// 函数简介     用于蓝牙调试的串口初始化
 // 参数说明     uartn           串口模块号(UART_0,UART_1,UART_2,UART_3)
 // 参数说明     baud            串口波特率
 // 参数说明     tx_pin          串口发送引脚
@@ -61,14 +63,14 @@ void USB_uart_init(uart_index_enum uartn, uint32 baud, uart_tx_pin_enum tx_pin, 
 //-------------------------------------------------------------------------------------------------------------------
 void BLUETOOTH_uart_init(uart_index_enum uartn, uint32 baud, uart_tx_pin_enum tx_pin, uart_rx_pin_enum rx_pin)
 {
-    //串口初始化
+    // 串口初始化
     uart_init(uartn, baud, tx_pin, rx_pin);
 
-//    //开启串口中断
+//    // 开启串口中断
 //    uart_tx_interrupt(uartn, 1);
 //    uart_rx_interrupt(uartn, 1);
 
-    //Bluetooth_data数据初始化
+    // Bluetooth_data数据初始化
     Bluetooth_data.receiveFinished = false;
     Bluetooth_data.receiveStart = false;
     Bluetooth_data.receiveIndex = 0;
@@ -133,84 +135,10 @@ void Bluetooth_Send(char *string, ...)
 
 
 //-------------------------------------------------------------------------------------------------------------------
-// 函数简介     通过无线串口发送数据
-// 参数说明     string  将要发送的所有数据写入
+// 函数简介     通过无线串口发送数据，用匿名上位机对指定数据进行监视分析
+// 参数说明     data 要发送的数据
 // 返回参数     void
 //-------------------------------------------------------------------------------------------------------------------
-//void Wireless_Uart_Send(char *string, ...)
-//{
-//    uart_write_byte(UART_0,0XAA);          //发送数据包头
-//    uart_write_byte(UART_0,0XFF);          //发送目标地址
-//    uart_write_byte(UART_0,0XF1);          //发送功能码ID
-//
-//    char *ptr_string = string;                  //避免直接使用string，导致string指向的地址发生变化
-//    int int_data;
-//    float float_data;
-//    void* void_ptr = &float_data;
-//    uint8_t* float_buff = (uint8_t*)void_ptr;
-//    va_list ap;                                 //定义一个va_list类型变量ap
-//    va_start(ap, string);                       //初始化va，使va指向string的下一个地址
-//
-//    uint8_t sum = 0x00;                         //定义和校验数据位
-//    uint8_t add = 0x00;                         //定义和和校验数据位
-//    uint8_t sum_buff = 0;                       //处理32位转换为8位
-//    uint8_t data_buff[32] = {0};                //发送数据数组
-//    uint8_t j = 0;                              //记录数组序列号
-//
-//    sum += 0xAA;
-//    add += sum;
-//    sum += 0xFF;
-//    add += sum;
-//    sum += 0xF1;
-//    add += sum;
-//
-//    while(*ptr_string != '\0')
-//    {
-//        if(*ptr_string == '%')                  //格式控制符
-//        {
-//            switch(*++ptr_string)
-//            {
-//                case 'd':
-//                    int_data = va_arg(ap, int);  //检索变量
-//                    for (int i = 0; i < 4; i++)
-//                    {
-//                        sum_buff = (uint32_t)int_data & (0xFF << 8*i);
-//                        sum += sum_buff;
-//                        add += sum;
-//                        data_buff[j] = sum_buff;
-//                        j++;
-//                    }
-//                    break;
-//                case 'f':
-//                    float_data = va_arg(ap, float);
-//                    int32_t temp = (int32_t)(float_data * 100);
-//
-//                    for (int i = 0; i < 4; i++)
-//                    {
-//                        sum_buff = (uint32_t)temp & (0xFF << 8*i);
-//                        sum += sum_buff;
-//                        add += sum;
-//                        data_buff[j] = sum_buff;
-//                        j++;
-//                    }
-//                    break;
-//                default:
-//                    break;
-//            }
-//        }
-//        ptr_string++;  //指向下一个地址
-//    }
-//
-//    uart_write_byte(UART_0,j);                            //发送数据长度
-//
-//    sum = sum + j;
-//    add += sum;
-//
-//    uart_write_buffer(UART_0,data_buff,j);                //发送数据位
-//    uart_write_byte(UART_0,sum);                          //发送和校验
-//    uart_write_byte(UART_0,add);                          //发送和和校验
-//    va_end(ap);                                           //关闭ap
-//}
 void Wireless_Uart_Send(int32_t data1,int32_t data2,int32_t data3,uint32_t data4)
 {
     int cnt=0;
@@ -225,7 +153,6 @@ void Wireless_Uart_Send(int32_t data1,int32_t data2,int32_t data3,uint32_t data4
     buff[cnt++]  = 0x16;
 
     Byte4_Union byte_4_union;
-
 
     byte_4_union.U32 = (uint32_t)data1;
     for(int i=0;i<4;i++)
@@ -270,7 +197,7 @@ void Wireless_Uart_Send(int32_t data1,int32_t data2,int32_t data3,uint32_t data4
 
 
 //-------------------------------------------------------------------------------------------------------------------
-// 函数简介       UART_INDEX 的接收中断处理函数 这个函数将在 UART_INDEX 对应的中断调用
+// 函数简介       与edgeboard通信的函数接口，数据包接受函数
 // 参数说明       void
 // 返回参数       void
 // 使用示例       uart2_rx_interrupt_handler();
@@ -377,7 +304,7 @@ void uart2_rx_interrupt_handler(void)
 
 
 //-------------------------------------------------------------------------------------------------------------------
-// 函数简介       UART_INDEX 的接收中断处理函数 这个函数将在 UART_INDEX 对应的中断调用
+// 函数简介       初始阶段蓝牙调试时，对应的通信接口
 // 参数说明       void
 // 返回参数       void
 // 使用示例       uart0_rx_interrupt_handler();
@@ -393,7 +320,7 @@ void uart0_rx_interrupt_handler(void)
         if(temp == DATA_PEAK_HEAD && !Bluetooth_data.receiveStart)
         {
             //切换为开始接收状态
-            Bluetooth_data.receiveStart = TRUE;
+            Bluetooth_data.receiveStart = true;
             //写入数据
             Bluetooth_data.receiveBuff[0] = temp;
             //进入下一个接收序列
@@ -401,7 +328,7 @@ void uart0_rx_interrupt_handler(void)
             //清零校验位
             Bluetooth_data.data_verity = 0;
             //开始接收数据
-            Bluetooth_data.receiveFinished = FALSE;
+            Bluetooth_data.receiveFinished = false;
         }
         else if(Bluetooth_data.receiveStart && Bluetooth_data.receiveIndex < UART_FRAME_LEN - 2)
         {
@@ -481,7 +408,7 @@ IFX_INTERRUPT(uart2_rx_isr, 0, UART2_RX_INT_PRIO)
 
 
 //-------------------------------------------------------------------------------------------------------------------
-// 函数简介       监测软件线程控制器
+// 函数简介       Edgeboard通信监测软件线程控制器
 // 参数说明       void
 // 返回参数       void
 //-------------------------------------------------------------------------------------------------------------------
@@ -501,8 +428,6 @@ void USB_Edgeboard_Timr(void)
             usbStr.connected = false;
             //软件自检掉线
             usbStr.inspectorEnable = false;
-            //智能车自检失能
-            //icarStr.selfcheckEnable = false;
         }
         //如果使用软件进行自检，进行下列操作
         if(usbStr.inspectorEnable)
@@ -521,7 +446,7 @@ void USB_Edgeboard_Timr(void)
 
 
 //-------------------------------------------------------------------------------------------------------------------
-// 函数简介       监测软件线程控制器
+// 函数简介       无线串口线程监视器
 // 参数说明       void
 // 返回参数       void
 //-------------------------------------------------------------------------------------------------------------------
@@ -661,9 +586,6 @@ void USB_Edgeboard_Handle(void)
                     //将数据赋值给联合体，进行数据处理
                     for(int i=0;i<4;i++)
                         byte4_union.U8_Buff[i] = usbStr.receiveBuffFinished[3+i];
-                    //led等效显示
-                    //RGB_SetAllColor((unsigned long)byte4_union.U32);
-                    //rgbStr.lastColor = (unsigned long)byte4_union.U32;
                     break;
                 //速控模式切换
                 case USB_ADDR_SPEEDMODE:
@@ -767,15 +689,10 @@ void Wireless_Handle(void)
 {
     if(Bluetooth_data.Flag_Wireless == true)
     {
-        Wireless_Uart_Send((int32_t)(icarStr.SpeedSet*10000),
-                           (int32_t)(icarStr.speed_set*10000),
-                           (int32_t)(icarStr.SpeedFeedback*10000),0);
-//        Wireless_Uart_Send((int32_t)(Gyroscope_g_and_a_data_get.g_x*10000),
-//                           (int32_t)(Gyroscope_attitude_Angle_data_get.pitch*10000),
-//                           (int32_t)(Gyroscope_attitude_Angle_data_get.roll*10000),0);
-//        Wireless_Uart_Send((int32_t)(Gyroscope_g_and_a_data_get.g_x*10000),
-//                           (int32_t)(Gyroscope_g_and_a_data_get.g_y*10000),
-//                           (int32_t)(Gyroscope_g_and_a_data_get.g_z*10000),0);
+        Wireless_Uart_Send((int32_t)(Gyroscope_attitude_Angle_data_get.yaw*10000),
+                           (int32_t)(Gyroscope_attitude_Angle_data_get.pitch*10000),
+                           (int32_t)(Gyroscope_attitude_Angle_data_get.roll*10000),
+                                     0);
         Bluetooth_data.Flag_Wireless = false;
     }
 }
@@ -813,8 +730,6 @@ void USB_Edgeboard_TransmitKey(uint16 time)
     //发送数据
     uart_write_buffer(eb_using_uart, buff, 8);
 }
-
-
 
 
 //----------------------------------------------[UNIT-智能汽车自检软件通信内容]----------------------------------------------------------
@@ -912,6 +827,7 @@ void USB_Edgeboard_CarSpeed(void)
     //发送数据
     uart_write_buffer(eb_using_uart, buff, 8);
 }
+
 
 //----------------------------------------------[向上位机发送通信内容]----------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------

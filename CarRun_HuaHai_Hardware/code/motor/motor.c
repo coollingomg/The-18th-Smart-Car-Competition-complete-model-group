@@ -21,18 +21,10 @@ MotorStruct motorStr;
 //-------------------------------------------------------------------------------------------------------------------
 void motor_init(void)
 {
-//选择电机控制方式
-#if motor_control_measure
-    //正转控制初始化，
-    pwm_init(pwm_positive, 50000, 0);                        //占空比在0~10000.
-    //反转控制初始化
-    pwm_init(pwm_nagetive, 50000, 0);                        //控制电机方向
-#else
     //速度控制初始化
     pwm_init(pwm_rotation, 100000, 0);                       //占空比在0~10000.
     //正反转控制初始化
     gpio_init(pwm_control, GPO, 0, GPO_PUSH_PULL);           //控制电机方向
-#endif
 
     //初始时，电机速度为0
     motor_SetPwmValue(0);
@@ -65,14 +57,8 @@ void motor_SetPwmValue(int16 pwm)
             pwm = PWM_DUTY_MAX;
         }
         //设置电机正转
-#if motor_control_measure
-        pwm_set_duty(pwm_positive, (uint32)pwm);
-        pwm_set_duty(pwm_nagetive, 0);
-#else
         gpio_set_level(pwm_control, 1);
         pwm_set_duty(pwm_rotation, (uint32)pwm);
-#endif
-
     }
     else
     {
@@ -84,13 +70,8 @@ void motor_SetPwmValue(int16 pwm)
             pwm = PWM_DUTY_MAX;
         }
         //设置电机反转
-#if motor_control_measure
-        pwm_set_duty(pwm_positive, 0);
-        pwm_set_duty(pwm_nagetive, (uint32)pwm);
-#else
         gpio_set_level(pwm_control, 0);
         pwm_set_duty(pwm_rotation, (uint32)pwm);
-#endif
     }
 }
 
@@ -104,10 +85,10 @@ void motor_ControlLoop(void)
 {
     //定义给定pwm值
     static int16 speed_to_pwm = 0;
-    //线程控制，每1ms进入一次该函数
+    //线程控制，每0.5ms进入一次该函数
     motorStr.Counter++;
     //每5ms对电机速度进行控制
-    if(motorStr.Counter >= 5)
+    if(motorStr.Counter >= 10)
     {
         //获取当前编码器的值
         motorStr.EncoderValue = encoder_get_count(USING_TIMER);
@@ -117,17 +98,16 @@ void motor_ControlLoop(void)
         float temp_speed = (float)(motorStr.EncoderValue * motorStr.DiameterWheel * PI_MOTOR)/ MOTOR_CONTROL_CYCLE / motorStr.EncoderLine / 4.0f / motorStr.ReductionRatio;
         icarStr.SpeedFeedback = Kalman_Filter_Fun(&kalman_struck, temp_speed);
 
-        //通信连接才开启闭环（保护+省电）
+        //通信连接才开启闭环
         if(usbStr.connected)
         {
             //闭环速控
             if(motorStr.CloseLoop)
             {
-//                //pid计算，并赋值给pwm
-//                icarStr.speed_set = Kalman_Filter_Fun(&kalman_struck2, icarStr.SpeedSet);
+                // pid计算，并赋值给pwm
                 PID_Calc(&car_speed_pid, icarStr.SpeedFeedback, icarStr.SpeedSet);
                 speed_to_pwm = (int16)(car_speed_pid.out + usbStr.recevie_k * icarStr.SpeedFeedback);
-                //赋值pwm
+                // 赋值pwm
                 motor_SetPwmValue(speed_to_pwm);
             }
             else

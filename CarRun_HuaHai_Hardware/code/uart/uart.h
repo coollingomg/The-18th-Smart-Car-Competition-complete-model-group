@@ -4,6 +4,8 @@
  *  Created on: 2023年3月18日
  *      Author: wzl
  */
+
+
 #ifndef CODE_UART_UART_H_
 #define CODE_UART_UART_H_
 
@@ -11,7 +13,6 @@
 //包含头文件
 #include <stdarg.h>
 #include "cpu0_main.h"
-
 
 
 //宏定义蓝牙串口引脚
@@ -22,6 +23,7 @@
 //宏定义蓝牙使用串口的波特率
 #define bluetooth_using_uart_baud   115200
 
+
 //宏定义eb使用的串口
 #define eb_using_uart               2       //UART_2
 //宏定义eb使用串口的波特率
@@ -31,14 +33,15 @@
 #define uart_eb_pin_rx              10      //UART2_RX_P10_6
 
 
-//定义帧头
+//定义帧头--蓝牙
 #define DATA_PEAK_HEAD              0xa5
-//定义帧尾
+//定义帧尾--蓝牙
 #define DATA_PEAK_TAIL              0x5a
-//通信序列字节长度
+//通信序列字节长度--蓝牙
 #define UART_FRAME_LEN              24
 
-//串口蓝牙调试数据结构体
+
+//串口--蓝牙调试数据结构体
 typedef struct
 {
     bool  receiveStart;                                     //数据接收开始
