@@ -116,7 +116,7 @@ void BLUETOOTH_uart_init            (uart_index_enum uartn, uint32 baud, uart_tx
 
 void use_bluetooth_Handle           (void);
 void Bluetooth_Send                 (char *string, ...);
-void Wireless_Uart_Send             (int32_t data1,int32_t data2,int32_t data3,uint32_t data4);
+void Wireless_Uart_Send             (int32_t data1,int32_t data2,int32_t data3,int32_t data4);
 
 void Wireless_Handle                (void);
 void Wireless_Timer                 (void);

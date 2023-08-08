@@ -59,7 +59,7 @@ void icm20602_attitude_Angle_Timer(void)
     static uint16_t num = 0;
     num++;
 
-    if(num >= 10)
+    if(num >= 5)
     {
         Gyroscope_attitude_Angle_data_get.Flag_handle = true;
         num = 0;
@@ -86,10 +86,10 @@ void icm20602_attitude_Angle_handle(void)
         Gyroscope_g_and_a_data_get.g_y = icm20602_gyro_transition(icm20602_gyro_y - GyroOffset.Ydata) * PI / 180;
         Gyroscope_g_and_a_data_get.g_z = icm20602_gyro_transition(icm20602_gyro_z - GyroOffset.Zdata) * PI / 180;
 
-        //姿态角解算
+        // 姿态角解算
         IMUupdate(Gyroscope_g_and_a_data_get, &Gyroscope_attitude_Angle_data_get);
-//        //卡尔曼对数据进行滤波
-//        Gyroscope_g_and_a_data_get.g_x = Kalman_Filter_Fun(&kalman_struck1, Gyroscope_g_and_a_data_get.g_x);
+        // 卡尔曼对数据进行滤波
+        Gyroscope_attitude_Angle_data_get.yaw = Kalman_Filter_Fun(&kalman_struck1, Gyroscope_attitude_Angle_data_get.yaw);
 
         //标志位清零
         Gyroscope_attitude_Angle_data_get.Flag_handle = false;
@@ -125,16 +125,21 @@ void gyroOffsetInit(void)
 /**********************四元数解算***********************/
 #define Kp 10.0f                            // proportional gain governs rate of convergence to accelerometer/magnetometer
 #define Ki 0.004f                           // integral gain governs rate of convergence of gyroscope biases
-#define halfT 0.005f                        // half the sample period采样周期
+#define halfT 0.005f                        // 一半采样周期
 
 float q0 = 1, q1 = 0, q2 = 0, q3 = 0;       // quaternion elements representing the estimated orientation
 float exInt = 0, eyInt = 0, ezInt = 0;      // scaled integral error
 
+
+//-------------------------------------------------------------------------------------------------------------------
+// 函数简介     陀螺仪四元数解算函数
+// 参数说明     得到的角速度信息和加速度信息
+// 返回参数     四元数姿态位置
+//-------------------------------------------------------------------------------------------------------------------
 void IMUupdate(Gyroscope_g_and_a_data Gyroscope_g_and_a_data_get_t, Gyroscope_attitude_Angle *Gyroscope_attitude_Angle_data_get_t)
 {
     float norm;
-    //float hx, hy, hz, bx, bz;
-    float vx, vy, vz;// wx, wy, wz;
+    float vx, vy, vz;
     float ex, ey, ez;
 
     // 先把这些用得到的值算好
@@ -152,7 +157,7 @@ void IMUupdate(Gyroscope_g_and_a_data Gyroscope_g_and_a_data_get_t, Gyroscope_at
     if(Gyroscope_g_and_a_data_get_t.a_x*Gyroscope_g_and_a_data_get_t.a_y*Gyroscope_g_and_a_data_get_t.a_z == 0)
         return;
 
-    //acc数据归一化
+    // 加速度计测量的重力方向(机体坐标系)
     norm = sqrtf(Gyroscope_g_and_a_data_get_t.a_x*Gyroscope_g_and_a_data_get_t.a_x +
                  Gyroscope_g_and_a_data_get_t.a_y*Gyroscope_g_and_a_data_get_t.a_y +
                  Gyroscope_g_and_a_data_get_t.a_z*Gyroscope_g_and_a_data_get_t.a_z);
@@ -160,42 +165,43 @@ void IMUupdate(Gyroscope_g_and_a_data Gyroscope_g_and_a_data_get_t, Gyroscope_at
     Gyroscope_g_and_a_data_get_t.a_y = Gyroscope_g_and_a_data_get_t.a_y / norm;
     Gyroscope_g_and_a_data_get_t.a_z = Gyroscope_g_and_a_data_get_t.a_z / norm;
 
-    // estimated direction of gravity and flux (v and w)              估计重力方向和流量/变迁
-    vx = 2*(q1q3 - q0q2);                                             //四元素中xyz的表示
+    // 四元数推出的实际重力方向(机体坐标系)
+    vx = 2*(q1q3 - q0q2);
     vy = 2*(q0q1 + q2q3);
-    vz = q0q0 - q1q1 - q2q2 + q3q3 ;
+    vz = q0q0 - q1q1 - q2q2 + q3q3;
 
-    // error is sum of cross product between reference direction of fields and direction measured by sensors
-    ex = (Gyroscope_g_and_a_data_get_t.a_y*vz - Gyroscope_g_and_a_data_get_t.a_z*vy) ;                                             //向量外积在相减得到差分就是误差
-    ey = (Gyroscope_g_and_a_data_get_t.a_z*vx - Gyroscope_g_and_a_data_get_t.a_x*vz) ;
-    ez = (Gyroscope_g_and_a_data_get_t.a_x*vy - Gyroscope_g_and_a_data_get_t.a_y*vx) ;
+    // 叉积误差
+    ex = (Gyroscope_g_and_a_data_get_t.a_y*vz - Gyroscope_g_and_a_data_get_t.a_z*vy);                                             //向量外积在相减得到差分就是误差
+    ey = (Gyroscope_g_and_a_data_get_t.a_z*vx - Gyroscope_g_and_a_data_get_t.a_x*vz);
+    ez = (Gyroscope_g_and_a_data_get_t.a_x*vy - Gyroscope_g_and_a_data_get_t.a_y*vx);
 
-    //对误差进行积分
+    // 叉积误差积分为角速度
     exInt = exInt + ex * Ki;
     eyInt = eyInt + ey * Ki;
     ezInt = ezInt + ez * Ki;
 
-    // adjusted gyroscope measurements
-    Gyroscope_g_and_a_data_get_t.g_x = Gyroscope_g_and_a_data_get_t.g_x + Kp*ex + exInt; //将误差PI后补偿到陀螺仪，即补偿零点漂移
+    // 角速度补偿
+    Gyroscope_g_and_a_data_get_t.g_x = Gyroscope_g_and_a_data_get_t.g_x + Kp*ex + exInt;        //将误差PI后补偿到陀螺仪，即补偿零点漂移
     Gyroscope_g_and_a_data_get_t.g_y = Gyroscope_g_and_a_data_get_t.g_y + Kp*ey + eyInt;
-    Gyroscope_g_and_a_data_get_t.g_z = Gyroscope_g_and_a_data_get_t.g_z + Kp*ez + ezInt; //这里的gz由于没有观测者进行矫正会产生漂移，表现出来的就是积分自增或自减
+    Gyroscope_g_and_a_data_get_t.g_z = Gyroscope_g_and_a_data_get_t.g_z + Kp*ez + ezInt;        //这里的gz由于没有观测者进行矫正会产生漂移，表现出来的就是积分自增或自减
 
-    // integrate quaternion rate and normalise                           //四元素的微分方程
+    // 更新四元数
     q0 = q0 + (-q1*Gyroscope_g_and_a_data_get_t.g_x - q2*Gyroscope_g_and_a_data_get_t.g_y - q3*Gyroscope_g_and_a_data_get_t.g_z)*halfT;
     q1 = q1 + (q0*Gyroscope_g_and_a_data_get_t.g_x + q2*Gyroscope_g_and_a_data_get_t.g_z - q3*Gyroscope_g_and_a_data_get_t.g_y)*halfT;
     q2 = q2 + (q0*Gyroscope_g_and_a_data_get_t.g_y - q1*Gyroscope_g_and_a_data_get_t.g_z + q3*Gyroscope_g_and_a_data_get_t.g_x)*halfT;
     q3 = q3 + (q0*Gyroscope_g_and_a_data_get_t.g_z + q1*Gyroscope_g_and_a_data_get_t.g_y - q2*Gyroscope_g_and_a_data_get_t.g_x)*halfT;
 
-    // normalise quaternion
+    // 单位化四元数
     norm = sqrtf(q0*q0 + q1*q1 + q2*q2 + q3*q3);
     q0 = q0 / norm;
     q1 = q1 / norm;
     q2 = q2 / norm;
     q3 = q3 / norm;
 
-    Gyroscope_attitude_Angle_data_get_t->yaw = (float)(atan2f(2 * q1 * q2 + 2 * q0 * q3, -2 * q2*q2 - 2 * q3* q3 + 1)* 57.3);        // yaw
-    Gyroscope_attitude_Angle_data_get_t->pitch  = (float)(asinf(-2 * q1 * q3 + 2 * q0* q2)* 57.3);                                   // pitch
-    Gyroscope_attitude_Angle_data_get_t->roll = (float)(atan2f(2 * q2 * q3 + 2 * q0 * q1, -2 * q1 * q1 - 2 * q2* q2 + 1)* 57.3);     // roll
+    // 四元数反解欧拉角
+    Gyroscope_attitude_Angle_data_get_t->yaw = atan2f(2 * (q1*q2 + q0*q3), -2*q2*q2 - 2*q3*q3 + 1)* 57.3;
+    Gyroscope_attitude_Angle_data_get_t->pitch  = asinf(-2*q1*q3 + 2*q0*q2)* 57.3;
+    Gyroscope_attitude_Angle_data_get_t->roll = atan2f(2*(q2*q3 + q0*q1), -2*q1*q1 - 2*q2*q2 + 1)* 57.3;
 }
 
 

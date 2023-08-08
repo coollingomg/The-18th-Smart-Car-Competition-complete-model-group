@@ -139,7 +139,7 @@ void Bluetooth_Send(char *string, ...)
 // 参数说明     data 要发送的数据
 // 返回参数     void
 //-------------------------------------------------------------------------------------------------------------------
-void Wireless_Uart_Send(int32_t data1,int32_t data2,int32_t data3,uint32_t data4)
+void Wireless_Uart_Send(int32_t data1,int32_t data2,int32_t data3,int32_t data4)
 {
     int cnt=0;
     unsigned char i;
@@ -692,7 +692,12 @@ void Wireless_Handle(void)
         Wireless_Uart_Send((int32_t)(Gyroscope_attitude_Angle_data_get.yaw*10000),
                            (int32_t)(Gyroscope_attitude_Angle_data_get.pitch*10000),
                            (int32_t)(Gyroscope_attitude_Angle_data_get.roll*10000),
-                                     0);
+                           (int32_t)(motorStr.Current_motor*10000));
+//        Wireless_Uart_Send((int32_t)(motorStr.Current_motor*10000),
+//                           (int32_t)(Gyroscope_attitude_Angle_data_get.pitch*10000),
+//                           (int32_t)(Gyroscope_attitude_Angle_data_get.roll*10000),
+//                                     0);
+
         Bluetooth_data.Flag_Wireless = false;
     }
 }

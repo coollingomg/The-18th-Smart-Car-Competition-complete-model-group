@@ -10,10 +10,15 @@
 #include "zf_driver_soft_iic.h"
 #include "zf_driver_delay.h"
 #include "motor.h"
+#include "SysSe/Math/Ifx_LowPassPt1F32.h"
 
 
 // 定义软件IIC参数结构体-->用于对电流计进行数据获取
 soft_iic_info_struct Soft_IIC_Struction;
+// 定义一阶低通滤波器结构体
+Ifx_LowPassPt1F32 LowPass_filter;
+// 定义一阶低通滤波器的参数配置结构体
+Ifx_LowPassPt1F32_Config LowPass_filter_config;
 
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -75,8 +80,14 @@ void INA226_Init(void)
     soft_iic_init(&Soft_IIC_Struction, 0x40, 60, P33_12, P33_11);
 
     // 采样模式设置
-    while(!INA226_Write2Byte(Config_Reg, 0x4207));      // 0100_001_000_000_111；4次平均、0.14ms、0.14ms、连续测量分流电压和总线电压
-    while(!INA226_Write2Byte(Calib_Reg, 0x0A00));       // 分辨率为0.001A，采样电阻为0.002Ω
+    while(!INA226_Write2Byte(Config_Reg, 0x424D));      // 0100_001_001_001_101；4次平均、0.204ms、0.204ms、连续测量分流电压
+    while(!INA226_Write2Byte(Calib_Reg, 0x0800));       // 分辨率为0.0005A，采样电阻为0.005Ω
+
+    // 低通滤波器的初始化
+    LowPass_filter_config.cutOffFrequency = 100;                             // 低通滤波器的截止频率为100hz
+    LowPass_filter_config.samplingTime = 0.0005;                             // 滤波的数据采样时间为0.0005s
+    LowPass_filter_config.gain = 1;                                          // 低通滤波器的增益为1
+    Ifx_LowPassPt1F32_init(&LowPass_filter, &LowPass_filter_config);         // 低通滤波器的初始化
 }
 
 
@@ -88,6 +99,9 @@ void INA226_Init(void)
 void INA226_Timer(void)
 {
     // 读取电流数据
-    motorStr.Current_motor = INA226_Read2Byte(Current_Reg) * 0.001f;
+    float current_motor = INA226_Read2Byte(Current_Reg) * 0.0005f;
+
+    // 进行一阶低通滤波
+    motorStr.Current_motor = Ifx_LowPassPt1F32_do(&LowPass_filter, current_motor);
 }
 

@@ -22,7 +22,7 @@ MotorStruct motorStr;
 void motor_init(void)
 {
     //速度控制初始化
-    pwm_init(pwm_rotation, 100000, 0);                       //占空比在0~10000.
+    pwm_init(pwm_rotation, 25000, 0);                        //占空比在0~10000.
     //正反转控制初始化
     gpio_init(pwm_control, GPO, 0, GPO_PUSH_PULL);           //控制电机方向
 
