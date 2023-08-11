@@ -5,16 +5,15 @@
  *      Author: wzl
  */
 
-
+#include "icm20602_data_handle.h"
+#include "voltage_sampling.h"
+#include "Buzzer/buzzer.h"
+#include "car_control.h"
 #include "timer/timer.h"
 #include "motor/motor.h"
-#include "isr_config.h"
-#include "car_control/car_control.h"
-#include "uart/uart.h"
-#include "Buzzer/buzzer.h"
 #include "servo/servo.h"
-#include "voltage_sampling/voltage_sampling.h"
-#include "icm20602_data_handle.h"
+#include "isr_config.h"
+#include "uart/uart.h"
 #include "INA226.h"
 
 
@@ -33,11 +32,11 @@ void timer_Init(void)
 
 
 //-------------------------------------------------------------------------------------------------------------------
-// 函数简介       定时中断服务函数
+// 函数简介       定时器cc61_pit_ch0中断
 // 参数说明       void
 // 返回参数       void
 //-------------------------------------------------------------------------------------------------------------------
-void timer_interrupt(void)
+static void ccu61_ch0_timer_interrupt(void)
 {
     //eb通讯掉线检测
     USB_Edgeboard_Timr();
@@ -55,36 +54,44 @@ void timer_interrupt(void)
 
 
 //-------------------------------------------------------------------------------------------------------------------
-// 函数简介       定时器中断
+// 函数简介       定时器cc60_pit_ch1中断
 // 参数说明       void
 // 返回参数       void
 //-------------------------------------------------------------------------------------------------------------------
-void timer_interrupt0(void)
+static void ccu60_ch1_timer_interrupt(void)
 {
-    //电机控制线程
-    motor_ControlLoop();
     //电机电流采样线程
     INA226_Timer();
+    //电机控制线程
+    motor_ControlLoop();
 }
 
 
+//-------------------------------------------------------------------------------------------------------------------
+// 函数简介       定时器cc61_pit_ch0中断函数向量接口
+// 参数说明       void
+// 返回参数       void
+//-------------------------------------------------------------------------------------------------------------------
 IFX_INTERRUPT(cc61_pit_ch0_isr, 0, CCU6_1_CH0_ISR_PRIORITY)
 {
     //开启中断嵌套
     interrupt_global_enable(0);
     pit_clear_flag(CCU61_CH0);
     //中断服务函数
-    timer_interrupt();
+    ccu61_ch0_timer_interrupt();
 }
 
 
+//-------------------------------------------------------------------------------------------------------------------
+// 函数简介       定时器cc60_pit_ch1中断函数向量接口
+// 参数说明       void
+// 返回参数       void
+//-------------------------------------------------------------------------------------------------------------------
 IFX_INTERRUPT(cc60_pit_ch1_isr, 0, CCU6_0_CH1_ISR_PRIORITY)
 {
     // 开启中断嵌套
     interrupt_global_enable(0);
     pit_clear_flag(CCU60_CH1);
     //中断服务函数
-    timer_interrupt0();
+    ccu60_ch1_timer_interrupt();
 }
-
-

@@ -11,7 +11,8 @@
 //包含头文件
 #include "cpu0_main.h"
 
-//定义蜂鸣器结构体
+
+//定义蜂鸣器参数结构体
 typedef struct
 {
     bool Enable;                        //使能标志
@@ -22,7 +23,7 @@ typedef struct
 }BuzzerStruct;
 
 
-//蜂鸣器音效
+//蜂鸣器音效枚举
 typedef enum
 {
     BuzzerOk = 0,                       //确认提示音
@@ -34,15 +35,15 @@ typedef enum
 }BuzzerEnum;
 
 
-//声明蜂鸣器相关函数
-void Buzzer_Init        (void);
-void Buzzer_Timer       (void);
-void Buzzer_Handle      (void);
-void Buzzer_Enable      (BuzzerEnum buzzer);
-
-
 //声明结构体
 extern BuzzerStruct buzzerStr;
 
 
-#endif /* CODE_BUZZER_BUZZER_H_ */
+//==================================================buzzer 基础函数==================================================
+void Buzzer_Init        (void);
+void Buzzer_Timer       (void);
+void Buzzer_Handle      (void);
+void Buzzer_Enable      (BuzzerEnum buzzer);
+//==================================================buzzer 基础函数==================================================
+
+#endif

@@ -5,14 +5,12 @@
  *      Author: wzl
  */
 
-
 #include "voltage_sampling/voltage_sampling.h"
 #include "car_control/car_control.h"
 #include "motor/motor.h"
 #include "servo/servo.h"
 #include "uart/uart.h"
 #include "key/key.h"
-
 
 //定义小车控制参数到的结构体
 IcarStruct icarStr;
@@ -25,11 +23,9 @@ IcarStruct icarStr;
 //-------------------------------------------------------------------------------------------------------------------
 void ICAR_Init(void)
 {
-    icarStr.Electricity = 0;                         //电量信息
     icarStr.Voltage = 0;                             //电压
     icarStr.SpeedSet = 0.0f;                         //电机目标速度：m/s
     icarStr.SpeedFeedback = 0.0f;                    //电机模型实测速度：m/s
-    icarStr.SpeedMaxRecords = 0.0f;
     icarStr.ServoPwmSet = servoStr.thresholdMiddle;  //设置舵机初始化pwm
 }
 

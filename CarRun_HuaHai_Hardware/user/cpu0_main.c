@@ -4,18 +4,16 @@
 
 
 //包含头文件
-#include "Kalman/Kalman_Filter.h"
+#include "icm20602_data_handle.h"
+#include "my_flash/my_flash.h"
+#include "Buzzer/buzzer.h"
+#include "Kalman_Filter.h"
 #include "motor/motor.h"
 #include "servo/servo.h"
 #include "timer/timer.h"
-#include "key/key.h"
-#include "my_flash/my_flash.h"
-#include "Buzzer/buzzer.h"
-#include "car_control/car_control.h"
+#include "car_control.h"
 #include "INA226.h"
-#include "pid.h"
 #include "uart.h"
-#include "icm20602_data_pose/icm20602_data_handle.h"
 
 
 //----------------------------------代码区域----------------------------------
@@ -34,14 +32,17 @@ int core0_main(void)
     motor_init();
     //初始化电流采样
     INA226_Init();
-    //线程初始化
+    //定时器初始化
     timer_Init();
     //蜂鸣器初始化
     Buzzer_Init();
-    //与eb通信初始化
-    USB_uart_init(eb_using_uart, eb_using_uart_baud, uart_eb_pin_tx, uart_eb_pin_rx);
-    //调试蓝牙接口
-    BLUETOOTH_uart_init(bluetooth_using_uart, bluetooth_using_uart_baud, uart_booluteeth_pin_tx, uart_booluteeth_pin_rx);
+    //陀螺仪任务初始化
+    icm20602_pose_init();
+    //偏航角滤波，卡尔曼参数初始化
+    Kalman_Filter_Init(&kalman_imu_yaw);
+    //无线串口或蓝牙调试接口初始化
+    Wireless_uart_init(wireless_using_uart, wireless_using_uart_baud, uart_wireless_pin_tx, uart_wireless_pin_rx);
+//    Bluetooth_uart_init(bluetooth_using_uart, bluetooth_using_uart_baud, uart_booluteeth_pin_tx, uart_booluteeth_pin_rx);
     //通信连接提示灯初始化
     gpio_init(P20_9, GPO, 1, GPO_PUSH_PULL);
     //初始化完成后，拉高电平唤醒电机驱动板
@@ -49,7 +50,7 @@ int core0_main(void)
     //初始化引脚，用于提示数据接受是否错误
     gpio_init(P21_5, GPO, 1, GPO_PUSH_PULL);
     //卡尔曼参数初始化，电机返回速度滤波
-    Kalman_Filter_Init(&kalman_struck);
+    Kalman_Filter_Init(&kalman_motor_speedback);
     //智能车控制参数初始化
     ICAR_Init();
     //初始化完成，蜂鸣器提示音
@@ -69,8 +70,12 @@ int core0_main(void)
         Buzzer_Handle();
         //智能车控制
         ICAR_Handle();
-        //蓝牙串口发送数据处理
+        //无线串口或蓝牙发送数据处理函数
         Wireless_Handle();
+//        //蓝牙接受数据处理函数
+//        use_bluetooth_Handle();
+        //姿态角解算处理函数
+        icm20602_attitude_Angle_handle();
 
 //----------------------------------此处编写需要循环执行的代码----------------------------------
 
@@ -78,5 +83,3 @@ int core0_main(void)
 }
 
 #pragma section all restore
-//----------------------------------代码区域----------------------------------
-

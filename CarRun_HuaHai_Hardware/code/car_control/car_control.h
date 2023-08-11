@@ -4,13 +4,15 @@
  *  Created on: 2023年3月27日
  *      Author: wzl
  */
+
 #ifndef CODE_CAR_CONTROL_CAR_CONTROL_H_
 #define CODE_CAR_CONTROL_CAR_CONTROL_H_
 
 //包含头文件
 #include "cpu0_main.h"
 
-//智能车自检步骤枚举
+
+//智能车自检步骤枚举，未使用过
 typedef enum
 {
     Selfcheck_None = 0,             //开始测试
@@ -30,20 +32,22 @@ typedef enum
     Selfcheck_Finish                //测试完成
 }SelfcheckEnum;
 
+
 //智能车相关参数控制结构体
 typedef struct
 {
     float  Voltage;                           //电池电压
-    uint8  Electricity;                       //电池电量百分比：0~100
     float  SpeedSet;                          //电机目标速度：m/s
     float  speed_set;                         //滤波后的目标速度：m/s
     float  SpeedFeedback;                     //电机模型实测速度：m/s
-    float  SpeedMaxRecords;                   //测试记录最高速
     uint16 ServoPwmSet;                       //舵机PWM设置
 
-    float  data_Kp;                           //数据kp
-    float  data_Ki;                           //数据ki
-    float  data_Kd;                           //数据kd
+    float  speed_loop_Kp;                     //速度环kp
+    float  speed_loop_Ki;                     //速度环ki
+    float  speed_loop_Kd;                     //速度环kd
+    float  current_loop_Kp;                   //电流环kp
+    float  current_loop_Ki;                   //电流环ki
+    float  current_loop_Kd;                   //电流环kd
 
     uint16 counterKeyA;                       //按键模式A计数器
     bool   keyPressed;                        //按键按下
@@ -57,13 +61,16 @@ typedef struct
     uint8  speedSampleStep;                   //速度采样步骤
 }IcarStruct;
 
+
 //声明结构体
 extern IcarStruct icarStr;
 
+
 //==================================================CAR_CONTROL 基础函数==================================================
 void ICAR_Init          (void);
-void ICAR_Handle        (void);
 void ICAR_Timer         (void);
+void ICAR_Handle        (void);
 //==================================================CAR_CONTROL 基础函数==================================================
 
-#endif /* CODE_CAR_CONTROL_CAR_CONTROL_H_ */
+
+#endif

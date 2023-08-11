@@ -1,10 +1,16 @@
+/*
+ * Kalman_Filter.c
+ *
+ *  Created on: 2023年5月15日
+ *      Author: wzl
+ */
+
 #include "Kalman_Filter.h"
 
-
 //定义卡尔曼结构体参数
-KalmanInfo kalman_struck;       //电机返回速度滤波
-KalmanInfo kalman_struck1;      //偏航角加速度滤波
-//KalmanInfo kalman_struck2;      //电机设定速度滤波
+KalmanInfo kalman_motor_speedback;       // 电机返回速度滤波
+KalmanInfo kalman_imu_yaw;               // 偏航角加速度滤波
+
 
 //初始化卡尔曼滤波结构体
 void Kalman_Filter_Init(KalmanInfo *KalmanInfo_Structure)
@@ -14,7 +20,7 @@ void Kalman_Filter_Init(KalmanInfo *KalmanInfo_Structure)
     KalmanInfo_Structure->out = 0.0f;
     KalmanInfo_Structure->Kg = 0.0f;
     KalmanInfo_Structure->Q = 0.001f;
-    KalmanInfo_Structure->R = 0.543f;
+    KalmanInfo_Structure->R = 0.58f;
     return;
 }
 

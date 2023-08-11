@@ -9,10 +9,11 @@
 #define CODE_ICM20602_DATA_HANDLE_H_
 
 //包含头文件
-#include "zf_device_icm20602.h"             //陀螺仪bsp层头文件
+#include "zf_device_icm20602.h"
 #include "cpu0_main.h"
 
 
+// 定义imu原始数据结构体
 typedef struct
 {
     float a_x;
@@ -23,6 +24,8 @@ typedef struct
     float g_z;
 }Gyroscope_g_and_a_data;
 
+
+// 定义姿态角参数结构体
 typedef struct
 {
     float yaw;
@@ -53,7 +56,7 @@ void icm20602_pose_init                 (void);                                /
 void gyroOffsetInit                     (void);                                //陀螺仪零漂初始化
 void icm20602_attitude_Angle_handle     (void);                                //姿态角解算
 void icm20602_attitude_Angle_Timer      (void);                                //线程计时
-void IMUupdate(Gyroscope_g_and_a_data Gyroscope_g_and_a_data_get_t, Gyroscope_attitude_Angle *Gyroscope_attitude_Angle_data_get_t);
+void IMUupdate (Gyroscope_g_and_a_data Gyroscope_g_and_a_data_get_t, Gyroscope_attitude_Angle *Gyroscope_attitude_Angle_data_get_t);
 //==================================================ICM20602_DATA_HANDLE 基础函数==================================================
 
-#endif /* CODE_ICM20602_DATA_HANDLE_H_ */
+#endif

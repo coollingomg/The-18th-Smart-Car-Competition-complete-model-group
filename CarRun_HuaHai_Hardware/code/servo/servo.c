@@ -5,11 +5,8 @@
  *      Author: wzl
  */
 
-
-#include "servo/servo.h"
-#include "Kalman/Kalman_Filter.h"
 #include "car_control/car_control.h"
-
+#include "servo/servo.h"
 
 //定义舵机运动矫正结构体参数
 ServoStruct servoStr;
@@ -119,4 +116,3 @@ void SERVO_SetPwmValueCorrect(uint16 pwm)
     //输出pwm控制角度
     pwm_set_duty(servo_pwm_out_pin, (uint32)(pwm_Servo * TO_PENCENT));
 }
-

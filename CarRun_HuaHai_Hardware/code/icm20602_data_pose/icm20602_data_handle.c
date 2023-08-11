@@ -8,9 +8,9 @@
 
 //包含头文件
 #include "icm20602_data_handle.h"
-#include "zf_driver_gpio.h"
 #include "Kalman/Kalman_Filter.h"
 #include "Ifx_LutAtan2F32.h"
+#include "zf_driver_gpio.h"
 
 
 //定义陀螺仪姿态角结构体
@@ -31,8 +31,6 @@ void icm20602_pose_init(void)
 {
     //初始化陀螺仪icm20602
     while(icm20602_init());
-    // 初始化atan2查表
-    Ifx_LutAtan2F32_init();
     //点灯，说明初始化成功
     gpio_init(P20_8, GPO, 0, GPO_PUSH_PULL);
 
@@ -89,7 +87,7 @@ void icm20602_attitude_Angle_handle(void)
         // 姿态角解算
         IMUupdate(Gyroscope_g_and_a_data_get, &Gyroscope_attitude_Angle_data_get);
         // 卡尔曼对数据进行滤波
-        Gyroscope_attitude_Angle_data_get.yaw = Kalman_Filter_Fun(&kalman_struck1, Gyroscope_attitude_Angle_data_get.yaw);
+        Gyroscope_attitude_Angle_data_get.yaw = Kalman_Filter_Fun(&kalman_imu_yaw, Gyroscope_attitude_Angle_data_get.yaw);
 
         //标志位清零
         Gyroscope_attitude_Angle_data_get.Flag_handle = false;
@@ -122,14 +120,13 @@ void gyroOffsetInit(void)
 }
 
 
-/**********************四元数解算***********************/
+//==================================================四元数解算==================================================
 #define Kp 10.0f                            // proportional gain governs rate of convergence to accelerometer/magnetometer
 #define Ki 0.004f                           // integral gain governs rate of convergence of gyroscope biases
 #define halfT 0.005f                        // 一半采样周期
 
 float q0 = 1, q1 = 0, q2 = 0, q3 = 0;       // quaternion elements representing the estimated orientation
 float exInt = 0, eyInt = 0, ezInt = 0;      // scaled integral error
-
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     陀螺仪四元数解算函数
@@ -203,5 +200,3 @@ void IMUupdate(Gyroscope_g_and_a_data Gyroscope_g_and_a_data_get_t, Gyroscope_at
     Gyroscope_attitude_Angle_data_get_t->pitch  = asinf(-2*q1*q3 + 2*q0*q2)* 57.3;
     Gyroscope_attitude_Angle_data_get_t->roll = atan2f(2*(q2*q3 + q0*q1), -2*q1*q1 - 2*q2*q2 + 1)* 57.3;
 }
-
-

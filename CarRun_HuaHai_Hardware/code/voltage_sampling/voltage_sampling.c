@@ -4,8 +4,12 @@
  *  Created on: 2023年5月15日
  *      Author: wzl
  */
-#include "voltage_sampling/voltage_sampling.h"
+
+
+#include "voltage_sampling.h"
 #include "Buzzer/buzzer.h"
+#include "car_control.h"
+
 
 //定义adc采样的结构体
 ADC_sampling adc_sampling;
@@ -64,6 +68,7 @@ void adc_Handle(void)
         get_value = adc_mean_filter_convert(ADC0_CH2_A2, 5);
         //将得到的值转换为电压值
         adc_sampling.adc_getNum = get_value / CONVERSION_FAC * MAX_VOLTAGE;
+        icarStr.Voltage = adc_sampling.adc_getNum;
         //判断电压是否低于设置电压
         if(adc_sampling.adc_getNum < VOLTAGE_VALUE && adc_sampling.adc_getNum >VOLTAGE_MIN)
         {

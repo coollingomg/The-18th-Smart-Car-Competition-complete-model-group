@@ -4,6 +4,7 @@
  *  Created on: 2023年3月28日
  *      Author: wzl
  */
+
 #ifndef CODE_KEY_KEY_H_
 #define CODE_KEY_KEY_H_
 
@@ -17,14 +18,15 @@
 typedef struct
 {
     bool KeyPress;                      //按键输入
-    //uint16_t CounterLed;                //LED闪烁计数器
 }GpioStruct;
+
 
 //声明按键结构体
 extern GpioStruct gpioStr;
 
+
 //==================================================CAR_CONTROL 基础函数==================================================
-void my_key_init(void);
+void my_key_init            (void);
 //==================================================CAR_CONTROL 基础函数==================================================
 
-#endif /* CODE_KEY_KEY_H_ */
+#endif

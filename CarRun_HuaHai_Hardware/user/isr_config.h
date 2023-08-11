@@ -15,7 +15,7 @@
 #define CCU6_0_CH0_ISR_PRIORITY 30	                // 定义CCU6_0 PIT通道0中断优先级 优先级范围1-255 越大优先级越高 与平时使用的单片机不一样
 
 #define CCU6_0_CH1_INT_SERVICE	IfxSrc_Tos_cpu0
-#define CCU6_0_CH1_ISR_PRIORITY 31
+#define CCU6_0_CH1_ISR_PRIORITY 252
 
 #define CCU6_1_CH0_INT_SERVICE	IfxSrc_Tos_cpu0
 #define CCU6_1_CH0_ISR_PRIORITY 32
@@ -59,7 +59,7 @@
 #define UART1_RX_INT_PRIO       14
 #define UART1_ER_INT_PRIO       15
 
-#define	UART2_INT_SERVICE       IfxSrc_Tos_cpu0
+#define	UART2_INT_SERVICE       IfxSrc_Tos_cpu1
 #define UART2_TX_INT_PRIO       253
 #define UART2_RX_INT_PRIO       254
 #define UART2_ER_INT_PRIO       255

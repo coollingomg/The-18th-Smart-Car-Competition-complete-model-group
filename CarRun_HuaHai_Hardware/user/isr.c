@@ -109,15 +109,15 @@ IFX_INTERRUPT(uart0_tx_isr, 0, UART0_TX_INT_PRIO)
     IfxAsclin_Asc_isrTransmit(&uart0_handle);
 }
 
-IFX_INTERRUPT(uart0_rx_isr, 0, UART0_RX_INT_PRIO)
-{
-    interrupt_global_enable(0);                     // 开启中断嵌套
-    IfxAsclin_Asc_isrReceive(&uart0_handle);
-
-#if DEBUG_UART_USE_INTERRUPT                        // 如果开启 debug 串口中断
-        debug_interrupr_handler();                  // 调用 debug 串口接收处理函数 数据会被 debug 环形缓冲区读取
-#endif                                              // 如果修改了 DEBUG_UART_INDEX 那这段代码需要放到对应的串口中断去
-}
+//IFX_INTERRUPT(uart0_rx_isr, 0, UART0_RX_INT_PRIO)
+//{
+//    interrupt_global_enable(0);                     // 开启中断嵌套
+//    IfxAsclin_Asc_isrReceive(&uart0_handle);
+//
+//#if DEBUG_UART_USE_INTERRUPT                        // 如果开启 debug 串口中断
+//        debug_interrupr_handler();                  // 调用 debug 串口接收处理函数 数据会被 debug 环形缓冲区读取
+//#endif                                              // 如果修改了 DEBUG_UART_INDEX 那这段代码需要放到对应的串口中断去
+//}
 
 IFX_INTERRUPT(uart0_er_isr, 0, UART0_ER_INT_PRIO)
 {

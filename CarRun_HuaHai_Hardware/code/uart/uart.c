@@ -8,19 +8,21 @@
 
 //包含头文件
 #include "uart.h"
-#include "isr_config.h"
 #include "pid/pid.h"
+#include "isr_config.h"
+#include "timer/timer.h"
 #include "servo/servo.h"
 #include "motor/motor.h"
-#include "my_flash/my_flash.h"
-#include "car_control/car_control.h"
 #include "Buzzer/buzzer.h"
-#include "timer/timer.h"
-#include "icm20602_data_pose/icm20602_data_handle.h"
+#include "my_flash/my_flash.h"
+#include "icm20602_data_handle.h"
+#include "car_control/car_control.h"
 
 
 //定义蓝牙数据结构体
 BlueTooth_data_recevie_Struct Bluetooth_data;
+//定义无线串口数据结构体
+Wireless_data_recevie_Struct Wireless_data;
 //定义eb通信数据结构体
 UsbStruct usbStr;
 
@@ -54,21 +56,39 @@ void USB_uart_init(uart_index_enum uartn, uint32 baud, uart_tx_pin_enum tx_pin, 
 
 
 //-------------------------------------------------------------------------------------------------------------------
-// 函数简介     用于蓝牙调试的串口初始化
+// 函数简介     用于无线串口调试的串口初始化
 // 参数说明     uartn           串口模块号(UART_0,UART_1,UART_2,UART_3)
 // 参数说明     baud            串口波特率
 // 参数说明     tx_pin          串口发送引脚
 // 参数说明     rx_pin          串口接收引脚
 // 返回参数     void
 //-------------------------------------------------------------------------------------------------------------------
-void BLUETOOTH_uart_init(uart_index_enum uartn, uint32 baud, uart_tx_pin_enum tx_pin, uart_rx_pin_enum rx_pin)
+void Wireless_uart_init(uart_index_enum uartn, uint32 baud, uart_tx_pin_enum tx_pin, uart_rx_pin_enum rx_pin)
 {
     // 串口初始化
     uart_init(uartn, baud, tx_pin, rx_pin);
 
-//    // 开启串口中断
-//    uart_tx_interrupt(uartn, 1);
-//    uart_rx_interrupt(uartn, 1);
+    // Bluetooth_data数据初始化
+    Wireless_data.Flag_Wireless = false;       //无线串口定时发送标志位
+}
+
+
+//-------------------------------------------------------------------------------------------------------------------
+// 函数简介     用于无线串口调试的串口初始化
+// 参数说明     uartn           串口模块号(UART_0,UART_1,UART_2,UART_3)
+// 参数说明     baud            串口波特率
+// 参数说明     tx_pin          串口发送引脚
+// 参数说明     rx_pin          串口接收引脚
+// 返回参数     void
+//-------------------------------------------------------------------------------------------------------------------
+void Bluetooth_uart_init(uart_index_enum uartn, uint32 baud, uart_tx_pin_enum tx_pin, uart_rx_pin_enum rx_pin)
+{
+    // 串口初始化
+    uart_init(uartn, baud, tx_pin, rx_pin);
+
+    // 开启串口中断
+    uart_tx_interrupt(uartn, 1);
+    uart_rx_interrupt(uartn, 1);
 
     // Bluetooth_data数据初始化
     Bluetooth_data.receiveFinished = false;
@@ -77,7 +97,7 @@ void BLUETOOTH_uart_init(uart_index_enum uartn, uint32 baud, uart_tx_pin_enum tx
     Bluetooth_data.data_verity = 0;
     Bluetooth_data.data_choice = false;         //默认闭环模式
     Bluetooth_data.copyready = false;           //初始时数据未接收到
-    Bluetooth_data.Flag_Wireless = false;       //无线串口定时发送标志位
+    Bluetooth_data.Flag_Bluetooth = false;      //无线串口定时发送标志位
 }
 
 
@@ -200,7 +220,6 @@ void Wireless_Uart_Send(int32_t data1,int32_t data2,int32_t data3,int32_t data4)
 // 函数简介       与edgeboard通信的函数接口，数据包接受函数
 // 参数说明       void
 // 返回参数       void
-// 使用示例       uart2_rx_interrupt_handler();
 //-------------------------------------------------------------------------------------------------------------------
 void uart2_rx_interrupt_handler(void)
 {
@@ -304,16 +323,15 @@ void uart2_rx_interrupt_handler(void)
 
 
 //-------------------------------------------------------------------------------------------------------------------
-// 函数简介       初始阶段蓝牙调试时，对应的通信接口
+// 函数简介       初始阶段调车时，蓝牙调试，对应的通信接口
 // 参数说明       void
 // 返回参数       void
-// 使用示例       uart0_rx_interrupt_handler();
 //-------------------------------------------------------------------------------------------------------------------
 void uart0_rx_interrupt_handler(void)
 {
     //定义一个变量来接收数据，并处理
     uint8 temp = 0;
-    //接收数据查询式,有数据会返回TRUE,没有数据会返回FALSE.
+    //接收数据查询式,有数据会返回TRUE,没有数据会返回FALSE
     if(uart_query_byte(bluetooth_using_uart, &temp))
     {
         //如果接收到数据为帧头，并且还没还是接收，进行接下来的接收
@@ -334,7 +352,7 @@ void uart0_rx_interrupt_handler(void)
         {
             //写入接收到的数据
             Bluetooth_data.receiveBuff[Bluetooth_data.receiveIndex] = temp;
-            //序列号加一
+            //序列号加1
             Bluetooth_data.receiveIndex++;
             //进行和校验数据加和
             Bluetooth_data.data_verity += temp;
@@ -373,22 +391,6 @@ void uart0_rx_interrupt_handler(void)
             memcpy(Bluetooth_data.receiveBuffFinished,Bluetooth_data.receiveBuff,UART_FRAME_LEN);
             Bluetooth_data.copyready = true;
 
-            //定义联合体来转换数据
-            Byte4_Union byte_4_union;
-
-            //获取数据
-            for(int i=0; i<4; i++)
-                byte_4_union.U8_Buff[i] = Bluetooth_data.receiveBuffFinished[14+i];
-            //取出数据speed
-            Bluetooth_data.data_angle = byte_4_union.Float;
-
-            //获取数据
-            for(int i=0; i<4; i++)
-                byte_4_union.U8_Buff[i] = Bluetooth_data.receiveBuffFinished[18+i];
-            //取出数据angle
-            Bluetooth_data.data_speed = byte_4_union.Float;
-            //舵机实时控制
-            servo_contral(Bluetooth_data.data_angle);
             //接收状态清除
             Bluetooth_data.receiveStart = FALSE;
         }
@@ -396,6 +398,11 @@ void uart0_rx_interrupt_handler(void)
 }
 
 
+//-------------------------------------------------------------------------------------------------------------------
+// 函数简介       串口2接受中断函数向量接口
+// 参数说明       void
+// 返回参数       void
+//-------------------------------------------------------------------------------------------------------------------
 IFX_INTERRUPT(uart2_rx_isr, 0, UART2_RX_INT_PRIO)
 {
     // 开启中断嵌套
@@ -404,6 +411,22 @@ IFX_INTERRUPT(uart2_rx_isr, 0, UART2_RX_INT_PRIO)
     IfxAsclin_Asc_isrReceive(&uart2_handle);
     // 串口接收处理
     uart2_rx_interrupt_handler();
+}
+
+
+//-------------------------------------------------------------------------------------------------------------------
+// 函数简介       串口0接受中断函数向量接口
+// 参数说明       void
+// 返回参数       void
+//-------------------------------------------------------------------------------------------------------------------
+IFX_INTERRUPT(uart0_rx_isr, 0, UART0_RX_INT_PRIO)
+{
+    // 开启中断嵌套
+    interrupt_global_enable(0);
+    // 打开接收串口0
+    IfxAsclin_Asc_isrReceive(&uart0_handle);
+    // 串口接收处理
+    uart0_rx_interrupt_handler();
 }
 
 
@@ -446,18 +469,21 @@ void USB_Edgeboard_Timr(void)
 
 
 //-------------------------------------------------------------------------------------------------------------------
-// 函数简介       无线串口线程监视器
+// 函数简介       无线串口线程计数器
 // 参数说明       void
 // 返回参数       void
 //-------------------------------------------------------------------------------------------------------------------
 void Wireless_Timer(void)
 {
+    // 定义静态变量计数器
     static uint8_t num;
     num++;
 
+    // 每5ms无线串口或蓝牙发送一次数据
     if(num >= 5)
     {
-        Bluetooth_data.Flag_Wireless = true;
+        Wireless_data.Flag_Wireless = true;
+//        Bluetooth_data.Flag_Bluetooth = true;
         num = 0;
     }
 }
@@ -538,34 +564,40 @@ void USB_Edgeboard_Handle(void)
                     break;
                 //PID参数设置
                 case USB_ADDR_PID_INFORMATION:
-                    //kp参数值
+                    // speed-loop-kp参数值
                     for(int i=0;i<4;i++)
                         byte4_union.U8_Buff[i] = usbStr.receiveBuffFinished[3+i];
-                    icarStr.data_Kp = byte4_union.Float;
-                    //ki参数值
+                    icarStr.speed_loop_Kp = byte4_union.Float;
+                    // speed-loop-ki参数值
                     for(int i=0;i<4;i++)
                         byte4_union.U8_Buff[i] = usbStr.receiveBuffFinished[7+i];
-                    icarStr.data_Ki = byte4_union.Float;
-                    //kd参数值
+                    icarStr.speed_loop_Ki = byte4_union.Float;
+                    // speed-loop-kd参数值
                     for(int i=0;i<4;i++)
                         byte4_union.U8_Buff[i] = usbStr.receiveBuffFinished[11+i];
-                    icarStr.data_Kd = byte4_union.Float;
-                    //k参数值
+                    icarStr.speed_loop_Kd = byte4_union.Float;
+                    // current-loop-kp参数值
                     for(int i=0;i<4;i++)
                         byte4_union.U8_Buff[i] = usbStr.receiveBuffFinished[15+i];
-                    usbStr.recevie_k = byte4_union.Float;
-                    //根据KP值判断是否开环还是闭环,0表示开环；非0表示闭环
-                    if(icarStr.data_Kp != 0) {
-                        //闭环模式
+                    icarStr.current_loop_Kp = byte4_union.Float;
+                    // current-loop-kp参数值
+                    for(int i=0;i<4;i++)
+                        byte4_union.U8_Buff[i] = usbStr.receiveBuffFinished[19+i];
+                    icarStr.current_loop_Ki = byte4_union.Float;
+                    // current-loop-kp参数值
+                    for(int i=0;i<4;i++)
+                        byte4_union.U8_Buff[i] = usbStr.receiveBuffFinished[23+i];
+                    icarStr.current_loop_Kd = byte4_union.Float;
+
+                    // 根据KP值判断是否开环还是闭环,0表示开环；非0表示闭环
+                    if(icarStr.speed_loop_Kp != 0)
                         motorStr.CloseLoop = true;
-                    }
-                    else {
-                        //开环模式
+                    else
                         motorStr.CloseLoop = false;
-                    }
-                    //写入flash
+
+                    // 写入flash
                     flashPIDEnable = true;
-                    //蜂鸣器提示
+                    // 蜂鸣器提示
                     Buzzer_Enable(BuzzerOk);
                     break;
                 //蜂鸣器音效
@@ -618,8 +650,6 @@ void USB_Edgeboard_Handle(void)
         system_delay_ms(1);
         USB_Edgeboard_ServoThreshold(3);
         system_delay_ms(1);
-        //USB_Edgeboard_BatteryInfo();            //发送电池信息
-        //system_delay_ms(1);
         USB_Edgeboard_CarSpeed();                 //发送车速
         usbStr.counterSend = 0;
     }
@@ -627,7 +657,7 @@ void USB_Edgeboard_Handle(void)
 
 
 //-------------------------------------------------------------------------------------------------------------------
-// 函数简介       bluetooth通信处理函数
+// 函数简介       Bluetooth通信处理函数
 // 参数说明       void
 // 返回参数       void
 //-------------------------------------------------------------------------------------------------------------------
@@ -644,62 +674,94 @@ void use_bluetooth_Handle(void)
         //取出数据->开闭环选择
         Bluetooth_data.data_choice = Bluetooth_data.receiveBuffFinished[1];
 
+        //定义联合体来转换数据
+        Byte4_Union byte_4_union;
+        //获取数据speed
+        for(int i=0; i<4; i++)
+            byte_4_union.U8_Buff[i] = Bluetooth_data.receiveBuffFinished[14+i];
+        Bluetooth_data.data_speed = byte_4_union.Float;
+        //获取数据angle
+        for(int i=0; i<4; i++)
+            byte_4_union.U8_Buff[i] = Bluetooth_data.receiveBuffFinished[18+i];
+        Bluetooth_data.data_angle = byte_4_union.Float;
+        //舵机实时控制
+        servo_contral(Bluetooth_data.data_angle);
+
         if(is_first)
         {
-            //改变状态，不是第一次来处理数据了
+            //改变状态，不是第一次来处理数据了，避免重复更新pid参数
             is_first = false;
 
-            //获取数据
+            //获取电机速度环kp参数
             for(int i=0; i<4; i++)
                 byte4_union.U8_Buff[i] = Bluetooth_data.receiveBuffFinished[2+i];
-            //取出数据Kp
-            Bluetooth_data.data_Kp = byte4_union.Float;
-
-            //获取数据
+            Bluetooth_data.motor_speed_loop_Kp = byte4_union.Float;
+            //获取电机速度环ki参数
             for(int i=0; i<4; i++)
                 byte4_union.U8_Buff[i] = Bluetooth_data.receiveBuffFinished[6+i];
-            //取出数据Ki
-            Bluetooth_data.data_Ki = byte4_union.Float;
-
-            //获取数据
+            Bluetooth_data.motor_speed_loop_Ki = byte4_union.Float;
+            //获取电机速度环kd参数
             for(int i=0; i<4; i++)
                 byte4_union.U8_Buff[i] = Bluetooth_data.receiveBuffFinished[10+i];
-            //取出数据Kd
-            Bluetooth_data.data_Kd = byte4_union.Float;
+            Bluetooth_data.motor_speed_loop_Kd = byte4_union.Float;
+            //获取电机电流环kp参数
+            for(int i=0; i<4; i++)
+                byte4_union.U8_Buff[i] = Bluetooth_data.receiveBuffFinished[22+i];
+            Bluetooth_data.motor_current_loop_Kp = byte4_union.Float;
+            //获取电机电流环ki参数
+            for(int i=0; i<4; i++)
+                byte4_union.U8_Buff[i] = Bluetooth_data.receiveBuffFinished[26+i];
+            Bluetooth_data.motor_current_loop_Ki = byte4_union.Float;
+            //获取电机电流环kd参数
+            for(int i=0; i<4; i++)
+                byte4_union.U8_Buff[i] = Bluetooth_data.receiveBuffFinished[30+i];
+            Bluetooth_data.motor_current_loop_Kd = byte4_union.Float;
 
             //等待数据接收完成，点灯，说明数据接收完成
             gpio_init(P20_9, GPO, 0, GPO_PUSH_PULL);
             //获取pid参数
-            float pid_data[3] = {Bluetooth_data.data_Kp, Bluetooth_data.data_Ki, Bluetooth_data.data_Kd};
-            //写入pid参数到flash中
+            float pid_data[6] = {Bluetooth_data.motor_speed_loop_Kp, Bluetooth_data.motor_speed_loop_Ki,
+                                 Bluetooth_data.motor_speed_loop_Kd, Bluetooth_data.motor_current_loop_Kp,
+                                 Bluetooth_data.motor_current_loop_Ki, Bluetooth_data.motor_current_loop_Kd};
+            // 写入pid参数到flash中
             my_flash_write_pid(pid_data);
-            //pid初始化
-            PID_Init(&car_speed_pid, PID_POSITION, pid_data, CAR_MAX_SPEED,CAR_IMAX_OUT);
+            // 初始化speed_loop_pid参数
+            float speed_loop_pid_buff_bluetooth[3] = {Bluetooth_data.motor_speed_loop_Kp, Bluetooth_data.motor_speed_loop_Ki, Bluetooth_data.motor_speed_loop_Kd};
+            PID_Init(&car_speed_pid, PID_POSITION, speed_loop_pid_buff_bluetooth, SPEED_LOOP_MAX_OUT, SPEED_LOOP_P_MAX_OUT);
+            // 初始化current_loop_pid参数
+            float current_loop_pid_buff_bluetooth[3] = {Bluetooth_data.motor_current_loop_Kp, Bluetooth_data.motor_current_loop_Ki, Bluetooth_data.motor_current_loop_Kd};
+            PID_Init(&car_current_pid, PID_POSITION, current_loop_pid_buff_bluetooth, CURRENT_LOOP_MAX_OUT, CURRENT_LOOP_P_MAX_OUT);
+
+            // 蜂鸣器提示
+            Buzzer_Enable(BuzzerSysStart);
         }
     }
 }
 
 
 //-------------------------------------------------------------------------------------------------------------------
-// 函数简介       无线串口定时发送
+// 函数简介       无线串口或蓝牙定时发送
 // 参数说明       void
 // 返回参数       void
 //-------------------------------------------------------------------------------------------------------------------
 void Wireless_Handle(void)
 {
-    if(Bluetooth_data.Flag_Wireless == true)
+    // 无线串口定时发送数据
+    if(Wireless_data.Flag_Wireless == true)
     {
-        Wireless_Uart_Send((int32_t)(Gyroscope_attitude_Angle_data_get.yaw*10000),
-                           (int32_t)(Gyroscope_attitude_Angle_data_get.pitch*10000),
-                           (int32_t)(Gyroscope_attitude_Angle_data_get.roll*10000),
-                           (int32_t)(motorStr.Current_motor*10000));
-//        Wireless_Uart_Send((int32_t)(motorStr.Current_motor*10000),
-//                           (int32_t)(Gyroscope_attitude_Angle_data_get.pitch*10000),
-//                           (int32_t)(Gyroscope_attitude_Angle_data_get.roll*10000),
-//                                     0);
-
-        Bluetooth_data.Flag_Wireless = false;
+        Wireless_Uart_Send((int32_t)(motorStr.Set_current_motor*100000),
+                           (int32_t)(motorStr.Current_motor_After_filter*100000),
+                           (int32_t)(icarStr.speed_set*100000),
+                           (int32_t)(icarStr.SpeedFeedback*100000));
+        Wireless_data.Flag_Wireless = false;
     }
+
+//    // 蓝牙定时发送数据
+//    if(Bluetooth_data.Flag_Bluetooth == true)
+//    {
+//        Bluetooth_Send("%f%f%f", icarStr.SpeedSet, icarStr.SpeedFeedback, car_speed_pid.out);
+//        Bluetooth_data.Flag_Bluetooth = false;
+//    }
 }
 
 
@@ -737,7 +799,7 @@ void USB_Edgeboard_TransmitKey(uint16 time)
 }
 
 
-//----------------------------------------------[UNIT-智能汽车自检软件通信内容]----------------------------------------------------------
+//================================[UNIT-智能汽车自检软件通信内容]==================================
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介       发送舵机阈值
 // 参数说明       chanel: 1/左转阈值，2/右转阈值，3/中值
@@ -834,7 +896,7 @@ void USB_Edgeboard_CarSpeed(void)
 }
 
 
-//----------------------------------------------[向上位机发送通信内容]----------------------------------------------------------
+//==============================[向上位机发送通信内容]====================================
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     向上位机发送数据
 // 参数说明     senddata  将要发送的所有数据写入
