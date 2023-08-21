@@ -1,0 +1,26 @@
+{
+    "GranaryCheck": 2,
+    "SpeedExitOne": 1.2,
+    "SpeedExitTwo": 1.0,
+    "ServoEnter": 70,
+    "ServoCruise": 160,
+    "ServoExitOne": 80,
+    "ServoExitTwo": 80,
+    "ReverseScale": 0,
+    "DelayCnt": 15,
+    "ConeWidth": 180,
+    "record": [
+        {
+            "#GranaryCheck": "农田区域确认帧数",
+            "#SpeedExitOne": "农田区域1号出口速度",
+            "#SpeedExitTwo": "农田区域2号出口速度",
+            "#ServoEnter": "入粮仓区域打角行，越小打角越早",
+            "#ServoCruise": "完全进入粮仓后，角度开始回正的-锥桶行数判断",
+            "#ServoExitOne": "一号出口打角行",
+            "#ServoExitTwo": "二号出口打角行",
+            "#ReverseScale": "完全进入粮仓后，方向回正的速度 (0.0-1.0) ，越大回正越快",
+            "#DelayCnt": "入粮仓区延迟一定帧数，直到车辆回正，开始判断一号出口",
+            "#ConeWidth": "粮仓区域的宽度，赛道为160，此处应该比赛道宽"
+        }
+    ]
+}

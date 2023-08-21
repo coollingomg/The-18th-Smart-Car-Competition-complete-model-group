@@ -27,13 +27,43 @@ int main(int argc, char *argv[])
         std::cout << "can not open video device " << std::endl;
         return 1;
     }
+    {
+        // 获取摄像头参数范围
+        double minBrightness = capture.get(cv::CAP_PROP_BRIGHTNESS);
+        double maxBrightness = capture.get(cv::CAP_PROP_BRIGHTNESS + 1);
+
+        double minContrast = capture.get(cv::CAP_PROP_CONTRAST);
+        double maxContrast = capture.get(cv::CAP_PROP_CONTRAST + 1);
+
+        double minSaturation = capture.get(cv::CAP_PROP_SATURATION);
+        double maxSaturation = capture.get(cv::CAP_PROP_SATURATION + 1);
+
+        double minSharpness = capture.get(cv::CAP_PROP_SHARPNESS);
+        double maxSharpness = capture.get(cv::CAP_PROP_SHARPNESS + 1);
+
+        double minGain = capture.get(cv::CAP_PROP_GAIN);
+        double maxGain = capture.get(cv::CAP_PROP_GAIN + 1);
+
+        std::cout << "亮度范围：" << minBrightness << " - " << maxBrightness << std::endl;
+        std::cout << "对比度范围：" << minContrast << " - " << maxContrast << std::endl;
+        std::cout << "饱和度范围：" << minSaturation << " - " << maxSaturation << std::endl;
+        std::cout << "清晰度范围：" << minSharpness << " - " << maxSharpness << std::endl;
+        std::cout << "增益范围：" << minGain << " - " << maxGain << std::endl;
+    }
     capture.set(cv::CAP_PROP_FOURCC, cv::VideoWriter::fourcc('M', 'J', 'P', 'G'));
     capture.set(cv::CAP_PROP_FPS, 90);
     capture.set(cv::CAP_PROP_FRAME_WIDTH, COLSIMAGE);
     capture.set(cv::CAP_PROP_FRAME_HEIGHT, ROWSIMAGE);
-    //capture.set(cv::CAP_PROP_AUTO_EXPOSURE, 0.20);  //自动曝光开关
-    capture.set(cv::CAP_PROP_ZOOM, 15);
-    capture.set(cv::CAP_PROP_AUTO_EXPOSURE, 0.12);  //自动曝光开关
+    capture.set(cv::CAP_PROP_ZOOM, 12);
+    // capture.set(cv::CAP_PROP_AUTO_EXPOSURE, 0.15);  //自动曝光开关
+	capture.set(cv::CAP_PROP_EXPOSURE, 0.002);
+    {
+        // capture.set(cv::CAP_PROP_BRIGHTNESS, 1);    //亮度
+        // capture.set(cv::CAP_PROP_CONTRAST, 1);      //对比度
+        // capture.set(cv::CAP_PROP_SATURATION, 0.75);    //饱和度
+        // capture.set(cv::CAP_PROP_SHARPNESS, 3.6);     //清晰度
+        // capture.set(cv::CAP_PROP_GAIN, 0.5);          //增益
+    }
     // capture.set(cv::CAP_PROP_PAN, 20);
     // capture.set(cv::CAP_PROP_XI_OFFSET_X, 1);
     // capture.set(cv::CAP_PROP_XI_OFFSET_Y, 1);
@@ -41,8 +71,9 @@ int main(int argc, char *argv[])
     double rate = capture.get(CAP_PROP_FPS);
     double width = capture.get(CAP_PROP_FRAME_WIDTH);
     double height = capture.get(CAP_PROP_FRAME_HEIGHT);
-    std::cout << "Camera Param: frame rate = " << rate << " width = " << width
-              << " height = " << height << std::endl;
+	double exposure = capture.get(CAP_PROP_EXPOSURE);
+	std::cout << "Camera Param: frame rate = " << rate << " width = " << width
+			<< " height = " << height << " exposure = " << exposure << " ms" << std::endl;
 
     while (1)
     {

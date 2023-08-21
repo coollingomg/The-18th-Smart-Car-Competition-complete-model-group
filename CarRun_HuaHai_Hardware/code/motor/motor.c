@@ -153,7 +153,7 @@ void motor_ControlLoop(void)
             {
                 // 速度环pid控制器控制
                 icarStr.speed_set = Ifx_LowPassPt1F32_do(&LowPass_filter_speedset, icarStr.SpeedSet);
-                PID_Calc(&car_speed_pid, icarStr.SpeedFeedback, icarStr.speed_set);
+                PID_Calc(&car_speed_pid, icarStr.SpeedFeedback, icarStr.SpeedSet);
                 // 电流环pid控制器控制输入
 //                motorStr.Set_current_motor = Ifx_LowPassPt1F32_do(&LowPass_filter_current, car_speed_pid.out);
 //                if(icarStr.SpeedSet >= 0)

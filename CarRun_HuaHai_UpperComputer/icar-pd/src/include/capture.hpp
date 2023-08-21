@@ -61,7 +61,7 @@ public:
             // _cap->set(cv::CAP_PROP_SHARPNESS, 40);     //清晰度
             // _cap->set(cv::CAP_PROP_GAIN, 100);          //增益
             _cap->set(cv::CAP_PROP_AUTO_EXPOSURE, 0.15);  //自动曝光开关
-            // _cap->set(cv::CAP_PROP_EXPOSURE, -9);      //曝光级别
+            // _cap->set(cv::CAP_PROP_EXPOSURE, 0.019);       //曝光时间
         }
         CheckCap();
 
@@ -101,8 +101,9 @@ public:
         double rate = _cap->get(CAP_PROP_FPS);
         double width = _cap->get(CAP_PROP_FRAME_WIDTH);
         double height = _cap->get(CAP_PROP_FRAME_HEIGHT);
+        double exposure_ = _cap->get(CAP_PROP_EXPOSURE);
         std::cout << "Camera Param: frame rate = " << rate << " width = " << width
-                << " height = " << height << std::endl;
+                << " height = " << height << " exposure = " << exposure_ << " ms" << std::endl;
     }
 
     void SetCap(uint16_t row, uint16_t col, uint16_t rate, std::string format_out)

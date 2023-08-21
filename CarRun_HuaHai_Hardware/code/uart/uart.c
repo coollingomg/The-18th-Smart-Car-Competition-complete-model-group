@@ -750,7 +750,7 @@ void Wireless_Handle(void)
     if(Wireless_data.Flag_Wireless == true)
     {
         Wireless_Uart_Send((int32_t)(motorStr.Set_current_motor*100000),
-                           (int32_t)(motorStr.Current_motor_After_filter*100000),
+                           (int32_t)(icarStr.SpeedSet*100000),
                            (int32_t)(icarStr.speed_set*100000),
                            (int32_t)(icarStr.SpeedFeedback*100000));
         Wireless_data.Flag_Wireless = false;
@@ -774,7 +774,7 @@ void USB_Edgeboard_TransmitKey(uint16 time)
 {
     //整理发送的数据
     uint8 check = 0;
-    uint8 buff[8];
+    uint8 buff[6];
     Byte2_Union byte2_union;
 
     //帧头
@@ -795,7 +795,7 @@ void USB_Edgeboard_TransmitKey(uint16 time)
     //写入和校验数据
     buff[5] = check;
     //发送数据
-    uart_write_buffer(eb_using_uart, buff, 8);
+    uart_write_buffer(eb_using_uart, buff, 6);
 }
 
 

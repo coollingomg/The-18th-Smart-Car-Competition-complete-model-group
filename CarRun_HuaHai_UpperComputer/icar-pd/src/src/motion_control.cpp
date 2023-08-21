@@ -32,6 +32,8 @@ private:
   int counterShift = 0; // 变速计数器
 
 public:
+    uint8_t speed_plan = 0;
+
     /**
      * @brief 控制器核心参数
      */
@@ -40,7 +42,7 @@ public:
         float speedLow = 1.0;       // 智能车最低速
         float speedHigh = 1.0;      // 智能车最高速
         float speedAI = 1.0;        // ai识别速度
-        float speedCorners = 1.0;   // 贴弯速度
+        float speedRing = 1.0;      // 环岛速度
         float speedcoiled = 1.0;    // 连续弯道速度
 
         float speed_and_angle_k1 = 0.0;     // 速度方向耦合方程一次项
@@ -52,10 +54,19 @@ public:
         float turnP = 3.5;          // 一阶比例系数：转弯控制量
         float turnD = 3.5;          // 一阶微分系数：转弯控制量
 
-        float Kp = 1000.0;
-        float Ki = 0.0;
-        float Kd = 0.0;
-        float Kv = 0.0;
+        float point1_x = 25;        // 分段点1的x坐标
+        float point1_y = 1550;      // 分段点1的y坐标
+        float point2_x = 50;        // 分段点2的x坐标
+        float point2_y = 1680;      // 分段点2的y坐标
+        float point3_x = 110;       // 分段点2的x坐标
+        float point3_y = 1921;      // 分段点2的y坐标
+
+        float Kp_speed = 0.0;
+        float Ki_speed = 0.0;
+        float Kd_speed = 0.0;
+        float Kp_current = 0.0;
+        float Ki_current = 0.0;
+        float Kd_current = 0.0;
 
         float Angle_Kp = 0.0;
         float Angle_Ki = 0.0;
@@ -91,14 +102,16 @@ public:
         bool SlowzoneEnable = false;
         bool DepotEnable = false;
         bool FarmlandEnable = false;
+        bool GranaryEnable = false;
         string pathModel = "res/model/yolov3_mobilenet_v1";
         NLOHMANN_DEFINE_TYPE_INTRUSIVE(
-            Params, speedLow, speedHigh, speedAI, speedCorners, speedcoiled, speed_and_angle_k1, speed_and_angle_k2, 
+            Params, speedLow, speedHigh, speedAI, speedRing, speedcoiled, speed_and_angle_k1, speed_and_angle_k2, 
             runP1, runP2, runP3, turnP, turnD,Control_Mid, Control_Down_set, Control_Up_set, ki_down_out_max, Kp_dowm, 
-            Ki_down, Line_compensation_coefficient, Kp, Ki, Kd, Kv, Angle_Kp, Angle_Ki, dynamic_Mid_low, dynamic_Mid_high, 
-            Angle_target, rowCutUp, rowCutBottom,  Debug, Button, SaveImage, CloseLoop, GarageEnable, RingEnable, CrossEnable, 
-            StopEnable, BridgeEnable, SlowzoneEnable, DepotEnable, FarmlandEnable, pathModel, K_foreword, Control_foreword_up,
-            Control_foreword_down, K_K_limit); // 添加构造函数
+            Ki_down, Line_compensation_coefficient, Angle_Kp, Angle_Ki, dynamic_Mid_low, dynamic_Mid_high, Angle_target, 
+            rowCutUp, rowCutBottom,  Debug, Button, SaveImage, CloseLoop, GarageEnable, RingEnable, CrossEnable, StopEnable, 
+            BridgeEnable, SlowzoneEnable, DepotEnable, FarmlandEnable, GranaryEnable, pathModel, K_foreword, Control_foreword_up,
+            Control_foreword_down, K_K_limit, point1_x, point1_y, point2_x, point2_y, point3_x, point3_y, Kp_speed, Ki_speed,
+            Kd_speed, Kp_current, Ki_current, Kd_current); // 添加构造函数
     };
 
 
@@ -285,15 +298,36 @@ public:
         if(y_offset > 60)
             y_offset = 60;
 
-        // speed = params.speedHigh - (params.speedHigh - params.speedLow) * atan(abs(CenterLine_k)) - y_offset / 100 - x_offset / 200;
-        speed = params.speedHigh - (params.speedHigh - params.speedLow) * atan(abs(CenterLine_k)) - params.speedHigh * 0.1 * atan(min(abs(Slope_previewPoint), 4.0)) - x_offset / 200;
+        if(abs(CenterLine_k) > 1.4 && abs(Slope_previewPoint) > 2.5)
+            speed_plan = 1;
+        else if(abs(CenterLine_k) < 1.2 && abs(Slope_previewPoint) < 1.5)
+            speed_plan = 0;
+
+        switch(speed_plan)
+        {
+        case 0:
+            speed = params.speedHigh - (params.speedHigh - params.speedLow) * atan(min(abs(CenterLine_k), 2.0)) - params.speedHigh * 0.125 * atan(min(abs(Slope_previewPoint), 4.0)) - x_offset / 200;
+            break;
+        case 1:
+            speed = params.speedHigh - (params.speedHigh - params.speedLow) * atan(min(abs(CenterLine_k), 2.0)) - x_offset / 200;
+            break;
+        }
+
+        // if(abs(CenterLine_k) > 1.5 && abs(Slope_previewPoint) > 2.6)
+        //     speed = params.speedHigh - (params.speedHigh - params.speedLow) * atan(min(abs(CenterLine_k), 2.0)) - x_offset / 200;
+        // else
+        //     speed = params.speedHigh - (params.speedHigh - params.speedLow) * atan(min(abs(CenterLine_k), 2.0)) - params.speedHigh * 0.15 * atan(min(abs(Slope_previewPoint), 4.0)) - x_offset / 200;
+
+        if(control.sigmaCenter > 100)
+            speed -= control.sigmaCenter / 1000;
         // 最低速限制
         if(speed < 0.8)
             speed = 0.8;
 
-        //加速限幅
         if(speed - motorSpeed > 0.05f)
             motorSpeed += 0.05f;
+        else if(speed - motorSpeed < -0.1f)
+            motorSpeed -= 0.1f;
         else 
             motorSpeed = speed;
     }
@@ -577,47 +611,112 @@ public:
             error = 0;
         static float errorLast = 0;
 
-        // 限幅计算
-        // if(abs(error - errorLast) > COLSIMAGE / 10) 
-        //     error = error > errorLast ? errorLast + COLSIMAGE / 10 : errorLast - COLSIMAGE / 10;
+        // // 计算动态线偏P值
+        // params.turnP = abs(error) * abs(error) * params.runP3 + abs(error) * params.runP2 + params.runP1;
 
-        // 计算动态线偏P值
-        params.turnP = abs(error) * abs(error) * params.runP3 + abs(error) * params.runP2 + params.runP1;
+        /*******采用分段函数进行error控制*******/
+        std::vector<POINT> point_control_for_fitting_function;
+        point_control_for_fitting_function.push_back(POINT(params.point1_x, params.point1_y));
+        point_control_for_fitting_function.push_back(POINT(params.point2_x, params.point2_y));
+        point_control_for_fitting_function.push_back(POINT(params.point3_x, params.point3_y));
 
         int pwmDiff = 0;
         if(enum_RoadType == 4)
         {
-            pwmDiff = (error * params.turnP) + (error - errorLast) * params.turnD;
+            // pwmDiff = (error * params.turnP) + (error - errorLast) * params.turnD;
+            pwmDiff = control_curve_fitting(point_control_for_fitting_function, error) + (error - errorLast) * params.turnD;
             errorLast = error;
         }
-        else if(enum_RoadType == 1)
+        else if(enum_RoadType == 5)// 粮仓区域微分项限幅
         {
-            pwmDiff = (error * params.turnP) + (error - errorLast) * params.turnD;
+            if (abs(error - errorLast) > COLSIMAGE / 10) 
+            {
+                error = error > errorLast ? errorLast + COLSIMAGE / 10
+                                            : errorLast - COLSIMAGE / 10;
+            }
 
-            /**********加入路径规划，大转角**********/
-            if(abs(centerline_in_this_function_k) > params.K_K_limit)
-                pwmDiff = pwmDiff - error_foreword * params.K_foreword; 
+            pwmDiff = control_curve_fitting(point_control_for_fitting_function, error) + (error - errorLast) * params.turnD;
+            errorLast = error;
+        }
+        else if( enum_RoadType == 9)
+        {
+            if (abs(error - errorLast) > COLSIMAGE / 10) 
+            {
+                error = error > errorLast ? errorLast + COLSIMAGE / 10
+                                            : errorLast - COLSIMAGE / 10;
+            }
+
+            pwmDiff = control_curve_fitting(point_control_for_fitting_function, error + compensation_error) + (error - errorLast) * params.turnD;
             errorLast = error;
         }
         else
         {
-            pwmDiff = ((error + compensation_error) * params.turnP) + (error - errorLast) * params.turnD;
+            // pwmDiff = (error * params.turnP) + (error - errorLast) * params.turnD;
+            pwmDiff = control_curve_fitting(point_control_for_fitting_function, error + compensation_error) + (error - errorLast) * params.turnD;
 
             /**********加入路径规划，大转角**********/
             if(abs(centerline_in_this_function_k) > params.K_K_limit)
                 pwmDiff = pwmDiff - error_foreword * params.K_foreword; 
             errorLast = error;
         }
+        
 
         // PWM转换
-        servoPwm = (uint16_t)(PWMSERVOMID + pwmDiff);
+        servoPwm = (uint16_t)(pwmDiff);
+    }
+
+
+private:
+	/**
+	 * @brief 角度控制函数拟合--分段函数
+     * @param control_point 用于拟合曲线选取的点集
+	 * @param calculation_error_to_pwm 给定计算的error
+	 * @return error对应的pwm输出大小
+	 */
+    int control_curve_fitting(std::vector<POINT> control_point, float calculation_error_to_pwm)
+    {
+        // 得到返回的值
+        int error_return = 0;
+
+        // 检测error值的大小
+        if(0 <= abs(calculation_error_to_pwm) && abs(calculation_error_to_pwm) <= control_point[0].x)
+        {
+            error_return = 1500 + ((control_point[0].y - 1500)/(control_point[0].x - 0)) * (abs(calculation_error_to_pwm) - 0);
+            if(calculation_error_to_pwm >= 0)
+                return error_return;
+            else
+                return 3000 - error_return;
+        }
+        else if(control_point[0].x < abs(calculation_error_to_pwm) && abs(calculation_error_to_pwm) <= control_point[1].x)
+        {
+            error_return = control_point[0].y + ((control_point[1].y - control_point[0].y)/(control_point[1].x - control_point[0].x)) * (abs(calculation_error_to_pwm) - control_point[0].x);
+            if(calculation_error_to_pwm >= 0)
+                return error_return;
+            else
+                return 3000 - error_return;
+        }
+        else if(control_point[1].x < abs(calculation_error_to_pwm) && abs(calculation_error_to_pwm) <= control_point[2].x)
+        {
+            error_return = control_point[1].y + ((control_point[2].y - control_point[1].y)/(control_point[2].x - control_point[1].x)) * (abs(calculation_error_to_pwm) - control_point[1].x);
+            if(calculation_error_to_pwm >= 0)
+                return error_return;
+            else
+                return 3000 - error_return;
+        }
+        else if(control_point[2].x < abs(calculation_error_to_pwm))
+        {
+            error_return = control_point[2].y;
+            if(calculation_error_to_pwm >= 0)
+                return error_return;
+            else
+                return 3000 - error_return;
+        }
     }
 
 
 private:
 	/**
 	 * @brief 在俯视域计算预瞄点的切线斜率
-	 *
      * @param line 图像域下的中线
 	 * @param index 预瞄点的下标号
 	 * @param size 开窗大小
@@ -645,6 +744,7 @@ private:
         else
             return dy / dx;
     }
+
 
     /**
      * @brief 加载配置参数Json

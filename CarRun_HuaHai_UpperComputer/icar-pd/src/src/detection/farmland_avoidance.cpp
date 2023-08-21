@@ -41,6 +41,7 @@ public:
         counterRec = 0;
         counterSession = 0;
         counterFild = 0;
+        counterExit = 0;
         farmlandStep = FarmlandStep::None;
     }
 
@@ -92,6 +93,7 @@ public:
      */
     bool farmlandAvoid(TrackRecognition &track, cv::Mat frame)
     {
+        _pointsEdgeSize = MAX(track.pointsEdgeLeft.size(), track.pointsEdgeRight.size());
         switch(farmlandStep)
         {
         case FarmlandStep::None:
@@ -111,6 +113,12 @@ public:
         }
         case FarmlandStep::Enable:
         {
+			counterExit++;
+			if (counterExit > 60) {
+				reset();
+				return false;
+			}
+
             if (track.pointsEdgeLeft.size() < params.EnterLine && track.pointsEdgeRight.size() < params.EnterLine)
             {
                 counterRec++;
@@ -139,7 +147,7 @@ public:
         }
         case FarmlandStep::Enter:
         {
-            if (track.pointsEdgeLeft.size() < 80 && track.pointsEdgeRight.size() < 80)
+            if (track.pointsEdgeLeft.size() < 100 && track.pointsEdgeRight.size() < 100)
             {
                 counterSession = 0;
                 counterRec = 0;
@@ -155,9 +163,9 @@ public:
             line_extend(track.pointsEdgeLeft);
             line_extend(track.pointsEdgeRight);
             uint16_t size = MIN(track.pointsEdgeLeft.size(), track.pointsEdgeRight.size());
-            if(size > 160)
+            if(size > 120)
             {
-                size = 160;
+                size = 120;
                 track.pointsEdgeRight.resize(size);
                 track.pointsEdgeLeft.resize(size);
             }
@@ -209,6 +217,7 @@ public:
             split(frame, channels);
             cv::Mat blueChannel = channels[0];
             // 遍历每个轮廓
+            std::vector<uint16_t> lined_conters; // 用于记录已经“被”连接的轮廓，每个轮廓只能被连接一次，远点为被连接点
             for (size_t i = 0; i < contours.size(); ++i) 
             {
                 bool lined = false;
@@ -235,7 +244,7 @@ public:
                             if(otherPoint.y < track.rowCutUp)
                                 continue;
 
-                            if(abs(currentPoint.y - otherPoint.y) > 100 || abs(currentPoint.x - otherPoint.x) > 120)
+                            if(abs(currentPoint.y - otherPoint.y) > 100 || abs(currentPoint.x - otherPoint.x) > 100)
                                 continue;
 
                             // 计算两点之间的距离
@@ -244,13 +253,17 @@ public:
                             x_dist = std::max(currentPoint.y, otherPoint.y) * 0.6;
                             y_dist = std::abs(currentPoint.x - otherPoint.x) * (std::max(std::max(currentPoint.y, otherPoint.y), 80) / ROWSIMAGE);
                             distThreshold = x_dist + y_dist;
-
                             if(distThreshold < 50)
                                 distThreshold = 50;
 
+                            uint16_t lined_temp = currentPoint.y < otherPoint.y ? i : k;
+                            auto it = std::find(lined_conters.begin(), lined_conters.end(), lined_temp);
+
                             // 如果距离小于阈值，使用线段将两点连接起来
-                            if (distance < distThreshold) 
+                            if (distance < distThreshold && it == lined_conters.end()) 
                             {
+                                lined_conters.push_back(lined_temp);
+
                                 if(currentPoint.y < pointTop.x)
                                     pointTop = POINT(currentPoint.y, currentPoint.x);
                                 if(otherPoint.y < pointTop.x)
@@ -267,7 +280,7 @@ public:
             }
             cv::Mat kernel_close = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(5, 5));//创建结构元
             cv::Mat kernel_enrode = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(40, 40));
-            // cv::morphologyEx(blueChannel, blueChannel, cv::MORPH_CLOSE, kernel_close, cv::Point(-1, -1));//闭运算
+            cv::morphologyEx(blueChannel, blueChannel, cv::MORPH_CLOSE, kernel_close, cv::Point(-1, -1));//闭运算
             cv::morphologyEx(blueChannel, _imageGray, cv::MORPH_ERODE, kernel_enrode, cv::Point(-1, -1));//腐蚀运算
             cv::threshold(_imageGray, _imageBinary, 0, 255, cv::THRESH_OTSU);
 
@@ -276,52 +289,65 @@ public:
             movingAverageFilter(track.pointsEdgeLeft, 5);
             movingAverageFilter(track.pointsEdgeRight, 5);
 
-            if(pointTop.y && pointTop.x < ROWSIMAGE / 2)
-            {
+
+            {// 异常状况处理,针对于锥桶间出现了缺口
+                // 根据锥桶有效个数优化
+                _gap = 0;
                 uint16_t validrow = abs(pointTop.x - track.pointsEdgeLeft[0].x - 1);
-                if(validrow < track.pointsEdgeLeft.size())
+
+                // if(abs(track.pointsEdgeLeft[validrow].y - pointTop.y) > COLSIMAGE / 3 || abs(track.pointsEdgeRight[validrow].y - pointTop.y) > COLSIMAGE / 3
+                //     && validrow < COLSIMAGE / 2)
+                // {
+                //     _gap = 1;
+                //     track.pointsEdgeLeft = pointsEdgeLeftLast;
+                //     track.pointsEdgeRight = pointsEdgeRightLast;
+                // }
+                // else
+                // {
+                //     if(!counterSession)
+                //         counterSession++;
+
+                //     _gap = 2;
+                //     pointsEdgeLeftLast = track.pointsEdgeLeft;
+                //     pointsEdgeRightLast = track.pointsEdgeRight;
+                // }
+
+                if(pointTop.y && pointTop.x < ROWSIMAGE / 2 && validrow < track.pointsEdgeLeft.size())
                 {
                     track.pointsEdgeLeft.resize(validrow);
                     track.pointsEdgeRight.resize(validrow);
                 }
-            }
 
-            // uint16_t counter = 0;
-            // for(int i = 0; i < track.pointsEdgeLeft.size(); i++)
-            // {
-            //     if(track.pointsEdgeLeft[i].y < 3 && track.pointsEdgeRight[i].y > COLSIMAGE - 3)
-            //         counter++;
-            // }
-            // if(counter > track.pointsEdgeLeft.size() / 2)
-            // {
-            //     track.pointsEdgeLeft = pointsEdgeLeftLast;
-            //     track.pointsEdgeRight = pointsEdgeRightLast;
-            // }
-            // else
-            // {
-            //     pointsEdgeLeftLast = track.pointsEdgeLeft;
-            //     pointsEdgeRightLast = track.pointsEdgeRight;
-            // }
+                // 根据左右边线的丢线情况优化
+                uint16_t edge_counter_L = 0;
+                uint16_t edge_counter_R = 0;
+                for(int i = 0; i < track.pointsEdgeLeft.size(); i++)
+                {
+                    if(track.pointsEdgeLeft[i].y < 3)
+                        edge_counter_L++;
+                }
+                for(int i = 0; i < track.pointsEdgeRight.size(); i++)
+                {
+                    if(track.pointsEdgeRight[i].y > COLSIMAGE - 3)
+                        edge_counter_R++;
+                }
 
-            uint16_t edge_counter = 0;
-            for(int i = 0; i < track.pointsEdgeLeft.size(); i++)
-            {
-                if(track.pointsEdgeLeft[i].y < 3)
-                    edge_counter++;
-            }
-            if(edge_counter > track.pointsEdgeLeft.size() * 0.7)
-            {
-                track.pointsEdgeLeft.resize(5);
-            }
-            edge_counter = 0;
-            for(int i = 0; i < track.pointsEdgeRight.size(); i++)
-            {
-                if(track.pointsEdgeRight[i].y > COLSIMAGE - 3)
-                    edge_counter++;
-            }
-            if(edge_counter > track.pointsEdgeRight.size() * 0.7)
-            {
-                track.pointsEdgeRight.resize(5);
+
+                if(edge_counter_L > track.pointsEdgeLeft.size() * 0.7)
+                {
+                    track.pointsEdgeLeft.resize(5);
+                }
+                if(edge_counter_R > track.pointsEdgeRight.size() * 0.7)
+                {
+                    track.pointsEdgeRight.resize(5);
+                }
+
+                if(track.pointsEdgeLeft.size() < 6 && track.pointsEdgeRight.size() < 6)
+                {
+                    track.pointsEdgeLeft.resize(3);
+                    track.pointsEdgeRight.resize(3);
+                }
+
             }
 
             break;
@@ -549,24 +575,26 @@ public:
         }
     }
 
-    float get_speed()
+    float get_speed(float motionSpeed)
     {
         switch(farmlandStep)
         {
         case FarmlandStep::Enable:
         {
-            _speed = params.Speed; 
+            // motionSpeed -= 0.1f;
+            // if(motionSpeed < params.Speed * 0.6f)
+                motionSpeed = params.Speed * 0.8f; 
             break;
         }
         case FarmlandStep::Cruise:
         {
-            _speed += 0.02f;
-            if(_speed > params.Speed * params.SpeedScale)
-                _speed = params.Speed * params.SpeedScale; 
+            motionSpeed += 0.02f;
+            if(motionSpeed > params.Speed * params.SpeedScale)
+                motionSpeed = params.Speed * params.SpeedScale; 
             break;
         }
         }
-        return _speed;
+        return motionSpeed;
     }
 
 
@@ -627,6 +655,17 @@ public:
             break;
         }
         putText(image, state, Point(COLSIMAGE / 2 - 10, 20), cv::FONT_HERSHEY_TRIPLEX, 0.3, cv::Scalar(0, 255, 0), 1, CV_AA);
+
+        putText(image, "pointsSize: " + to_string(_pointsEdgeSize), Point(COLSIMAGE / 2 - 40, 40),
+        cv::FONT_HERSHEY_TRIPLEX, 0.5, cv::Scalar(0, 255, 0), 1,
+        CV_AA); // 显示边界个数
+
+        if(_gap == 1)
+            circle(image, Point(300, 20), 5, Scalar(0, 0, 255), -1);
+        else if(_gap == 0)
+            circle(image, Point(300, 20), 5, Scalar(0, 255, 0), -1);
+        else if(_gap == 2)
+            circle(image, Point(300, 20), 5, Scalar(255, 0, 0), -1);  
     }
 
 private:
@@ -772,8 +811,11 @@ private:
     uint16_t counterSession = 0;       // 图像场次计数器
     uint16_t counterRec = 0;           // 农田区标志检测计数器
     uint16_t counterFild = 0;
+	uint16_t counterExit = 0;	       // 农田区域异常识别计数器
+    uint16_t _pointsEdgeSize = 0;
     float _speed = 0.0f;
     int indexDebug = 0;
+    uint16_t _gap = 0;
 
     POINT pointTop = POINT(ROWSIMAGE - 1, 0);
     vector<POINT> pointsEdgeLeftLast;  // 记录前一场左边缘点集

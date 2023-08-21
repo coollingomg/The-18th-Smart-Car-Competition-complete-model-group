@@ -82,9 +82,16 @@ public:
 		counterImmunity = 0;
 		_speed = 0.0f;
 		_slowdown = false;
-		pathsEdgeLeft.clear(); // 记录进厂轨迹
-		pathsEdgeRight.clear();
 
+		for (std::vector<POINT>& innerVec : pathsEdgeLeft) {
+			innerVec.clear();
+		}
+		pathsEdgeLeft.clear();
+
+		for (std::vector<POINT>& innerVec : pathsEdgeRight) {
+			innerVec.clear();
+		}
+		pathsEdgeRight.clear();
 	}
 
 	/**
@@ -94,7 +101,7 @@ public:
 	 */
 	void depotDetection(vector<PredictResult> predict)
 	{
-		if(counterImmunity < 80)
+		if(counterImmunity < 50)
 		{
 			return;
 		}
@@ -158,7 +165,7 @@ public:
 	 */
 	bool depotDetection(TrackRecognition &track, cv::Mat img_rgb)
 	{
-		if(counterImmunity < 80)
+		if(counterImmunity < 50)
 		{
 			counterImmunity++;
 			return false;
@@ -181,8 +188,8 @@ public:
 			}
 			counterSession++;//刚进入维修区，延时等待知道能看到所有锥桶
 			
-			_coneRects = searchCones(img_rgb);
-			searchCones(_coneRects);
+			_coneRects = detectCones(img_rgb);
+			searchCones(_coneRects, track.rowCutUp);
 
 			if(depotType == DepotType::DepotLeft)
 				_pointNearCone = searchNearestCone(track.pointsEdgeLeft, pointEdgeDet);		 // 搜索右下锥桶
@@ -206,8 +213,8 @@ public:
 		}
 		case DepotStep::DepotEnter: //[03] 进站使能
 		{
-			_coneRects = searchCones(img_rgb);
-			searchCones(_coneRects);
+			_coneRects = detectCones(img_rgb);
+			searchCones(_coneRects, track.rowCutUp);
 			_distance = 0;
 			_pointNearCone = searchClosestCone(pointEdgeDet);
 			if(_distance < params.DangerClose && _distance > 0)
@@ -264,10 +271,10 @@ public:
 		case DepotStep::DepotStop: //[05] 停车使能
 		{
 			counterRec++;
-			if (counterRec > 25) // 停车：40场 = 2s
+			if (counterRec > 12) // 停车：40场 = 2s
 			{
 				depotStep = DepotStep::DepotExit; // 出站使能
-				counterRec = params.BrakeCnt;
+				counterRec = 0;
 			}
 			track.pointsEdgeLeft = pathsEdgeLeft[pathsEdgeLeft.size() - 1];//维持入库最后的打角
 			track.pointsEdgeRight = pathsEdgeRight[pathsEdgeRight.size() - 1];
@@ -276,11 +283,20 @@ public:
 
 		case DepotStep::DepotExit: //[06] 出站使能
 		{
-			if ((pathsEdgeLeft.size() < 1 || pathsEdgeRight.size() < 1)
-				|| (track.pointsEdgeLeft.size() > 160 && track.pointsEdgeRight.size() > 160) && track.widthBlock[10].y > COLSIMAGE / 2)
+			if (pathsEdgeLeft.size() < 2 || pathsEdgeRight.size() < 2)
 			{
-				depotStep = DepotStep::DepotNone; // 出厂完成
-				reset();
+				if((track.pointsEdgeLeft.size() > 160 && track.pointsEdgeRight.size() > 160) && track.widthBlock[10].y > COLSIMAGE / 2)
+				{
+					counterRec++;
+				}
+				track.pointsEdgeLeft = pathsEdgeLeft[pathsEdgeLeft.size() - 1];
+				track.pointsEdgeRight = pathsEdgeRight[pathsEdgeRight.size() - 1];
+
+				if(counterRec > params.BrakeCnt)
+				{
+					depotStep = DepotStep::DepotNone; // 出厂完成
+					reset();
+				}
 			}
 			else
 			{
@@ -289,7 +305,6 @@ public:
 				pathsEdgeLeft.pop_back();
 				pathsEdgeRight.pop_back();
 			}
-			
 			break;
 		}
 		}
@@ -603,7 +618,17 @@ public:
 		}
 		case DepotStep::DepotExit:
 		{
-			if(pathsEdgeLeft.size() > params.BrakeCnt && pathsEdgeRight.size() > params.BrakeCnt)
+			// if(pathsEdgeLeft.size() > params.BrakeCnt && pathsEdgeRight.size() > params.BrakeCnt)
+			// {
+			// 	_speed -= params.DepotSpeed / params.BrakeCnt;
+			// 	if(_speed < -params.DepotSpeed)
+			// 		_speed = -params.DepotSpeed;
+			// }
+			// else
+			// {
+			// 	_speed += params.DepotSpeed / params.BrakeCnt;
+			// }
+			if(!counterRec)
 			{
 				_speed -= params.DepotSpeed / params.BrakeCnt;
 				if(_speed < -params.DepotSpeed)
@@ -711,16 +736,18 @@ private:
 	/**
 	 * @brief 从视觉结果中检索锥桶坐标集合
 	 *
-	 * @param predict AI检测结果
+	 * @param predict 检测结果
+	 * @param rowCutUp 滤除掉图片最上方部分的色块
 	 * @return vector<POINT>
 	 */
-	void searchCones(vector<Rect> predict)
+	void searchCones(vector<Rect> predict, uint16_t rowCutUp = 0)
 	{
 		pointEdgeDet.clear();
 		for (int i = 0; i < predict.size(); i++)
 		{
-			pointEdgeDet.push_back(POINT(predict[i].y + predict[i].height / 2,
-											predict[i].x + predict[i].width / 2));
+			if(predict[i].y + predict[i].height / 2 > rowCutUp)
+				pointEdgeDet.push_back(POINT(predict[i].y + predict[i].height / 2,
+												predict[i].x + predict[i].width / 2));
 		}
 	}
 	/**
@@ -916,7 +943,7 @@ private:
 	}
 
 	//传统视觉识别锥桶
-	std::vector<cv::Rect> searchCones(cv::Mat img_rgb)
+	std::vector<cv::Rect> detectCones(cv::Mat img_rgb)
 	{
 		std::vector<cv::Rect> coneRects;
 		// 设置锥桶颜色的RGB范围（黄色）

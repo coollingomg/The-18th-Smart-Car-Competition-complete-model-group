@@ -11,6 +11,16 @@ using namespace cv;
 void movingAverageFilter(std::vector<POINT>& data, int windowSize);
 void line_extend(std::vector<POINT> &points);
 
+bool compareContoursByCenterY(const std::vector<cv::Point>& contour1, const std::vector<cv::Point>& contour2) {
+    cv::Moments moments1 = cv::moments(contour1);
+    cv::Moments moments2 = cv::moments(contour2);
+
+    cv::Point center1(moments1.m10 / moments1.m00, moments1.m01 / moments1.m00);
+    cv::Point center2(moments2.m10 / moments2.m00, moments2.m01 / moments2.m00);
+
+    return center1.y < center2.y;
+}
+
 int main(int argc, char *argv[])
 {
 	TrackRecognition trackRecognition;
@@ -75,6 +85,7 @@ int main(int argc, char *argv[])
         // 查找轮廓
         std::vector<std::vector<cv::Point>> contours;
         cv::findContours(mask, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+        // std::sort(contours.begin(), contours.end(), compareContoursByCenterY);
 
         //分离蓝色通道
         std::vector<cv::Mat> channels;
@@ -84,6 +95,7 @@ int main(int argc, char *argv[])
         // 创建空白图像作为结果
         cv::Mat resultImage = cv::Mat::zeros(frame.size(), CV_8UC3);
         // 遍历每个轮廓
+        std::vector<uint16_t> lined_conters; // 用于记录已经“被”连接的轮廓，每个轮廓只能被连接一次，远点为被连接点
         for (size_t i = 0; i < contours.size(); ++i) 
         {
             bool lined = false;
@@ -99,38 +111,51 @@ int main(int argc, char *argv[])
                 for (size_t k = i; k < contours.size(); ++k)
                 {
                     // 跳过当前轮廓
-                    if (k == i) {
+                    if (k == i)
                         continue;
-                    }
 
                     // 遍历其他轮廓的点
-                    for (size_t l = 0; l < contours[k].size(); ++l) {
+                    for (size_t l = 0; l < contours[k].size(); ++l) 
+                    {
                         // 获取其他轮廓的当前点
                         cv::Point otherPoint = contours[k][l];
-                        if(otherPoint.y < trackRecognition.rowCutUp)
+                        if(otherPoint.y < 50)
+                            continue;
+
+                        if(abs(currentPoint.y - otherPoint.y) > 100 || abs(currentPoint.x - otherPoint.x) > 100)
                             continue;
 
                         // 计算两点之间的距离
                         double distance = cv::norm(currentPoint - otherPoint);
-                        double distThreshold = std::max(currentPoint.y, otherPoint.y) * 0.5 + 
-                                            std::abs(currentPoint.x - otherPoint.x) * (std::min(currentPoint.y, otherPoint.y) / ROWSIMAGE);
+                        double x_dist, y_dist, distThreshold;
+                        x_dist = std::max(currentPoint.y, otherPoint.y) * 0.6;
+                        y_dist = std::abs(currentPoint.x - otherPoint.x) * (std::max(std::max(currentPoint.y, otherPoint.y), 80) / ROWSIMAGE);
+                        distThreshold = x_dist + y_dist;
+
+                        if(distThreshold < 50)
+                            distThreshold = 50;
+
+                        uint16_t lined_temp = currentPoint.y < otherPoint.y ? i : k;
+                        auto it = std::find(lined_conters.begin(), lined_conters.end(), lined_temp);
 
                         // 如果距离小于阈值，使用线段将两点连接起来
                         if (distance < distThreshold) 
                         {
-                            // {
-                            //     cv::Rect currentboundingRect = cv::boundingRect(contours[j]);
-                            //     cv::Rect otherboundingRect = cv::boundingRect(contours[k]);
-                            //     currentPoint = cv::Point(currentboundingRect.x + currentboundingRect.width / 2, currentboundingRect.y + currentboundingRect.height / 2);
-                            //     otherPoint = cv::Point(otherboundingRect.x + otherboundingRect.width / 2, otherboundingRect.y + otherboundingRect.height / 2);
-                            // }
-                            if(currentPoint.y < pointTop.x)
-                                pointTop = POINT(currentPoint.y, currentPoint.x);
-                            if(otherPoint.y < pointTop.x)
-                                pointTop = POINT(otherPoint.y, otherPoint.x);
-                            cv::line(resultImage, currentPoint, otherPoint, cv::Scalar(0, 255, 0), 5);
-                            cv::line(blueChannel, currentPoint, otherPoint, cv::Scalar(60), 5);
-                            lined = true;
+                            if(it == lined_conters.end())
+                            {
+                                lined_conters.push_back(lined_temp);
+                                if(currentPoint.y < pointTop.x)
+                                    pointTop = POINT(currentPoint.y, currentPoint.x);
+                                if(otherPoint.y < pointTop.x)
+                                    pointTop = POINT(otherPoint.y, otherPoint.x);
+                                cv::line(resultImage, currentPoint, otherPoint, cv::Scalar(0, 255, 0), 5);
+                                cv::line(blueChannel, currentPoint, otherPoint, cv::Scalar(60), 5);
+                                lined = true;
+                            }
+                            else
+                            {
+                                cv::line(resultImage, currentPoint, otherPoint, cv::Scalar(0, 0, 255), 5);
+                            }
                             break;
                         }
                     }

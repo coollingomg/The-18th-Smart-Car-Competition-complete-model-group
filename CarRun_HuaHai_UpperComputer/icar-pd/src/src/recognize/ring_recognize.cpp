@@ -73,7 +73,7 @@ public:
             counterShield = 0;
             return false;
         }
-        if (counterShield < 30)
+        if (counterShield < 15)
         {
             counterShield++;
             return false;
@@ -356,7 +356,7 @@ public:
                 else if(track.spurroad.size() == 1)
                 {
                     //寻找岔路行对应边线下标
-                    if(track.spurroad[0].y > 70)
+                    if(track.spurroad[0].y > 70 && track.spurroad[0].x < ROWSIMAGE - 40)
                     {
                         _corner = track.spurroad[0];
                         spurroad_item = abs(_corner.x - track.pointsEdgeLeft[0].x);
@@ -377,7 +377,7 @@ public:
                 {
                     for(int i = 0; i < track.spurroad.size(); i++)
                     {
-                        if(track.spurroad[i].x > _corner.x)
+                        if(track.spurroad[i].x > _corner.x && track.spurroad[i].y > 70 && track.spurroad[i].x < COLSIMAGE / 2)
                         {
                             _corner = track.spurroad[i];
                         }
@@ -410,10 +410,10 @@ public:
                         if(rowBreakRightD < 3)
                         {
                             float rowRate = _corner.x;
-                            if(rowRate < 60)
+                            if(rowRate < 50)
                                 rowRate = 0;
                             else
-                                rowRate -= 60;
+                                rowRate -= 50;
                             track.pointsEdgeRight[rowBreakRightD].y -= (rowRate / ROWSIMAGE) * (COLSIMAGE - _corner.y);
                         }
                         POINT startPoint = track.pointsEdgeRight[rowBreakRightD];
@@ -479,6 +479,8 @@ public:
                 else if(_corner.x == 0 && counterSpurroad > 2)
                 {
                     counterSpurroad = 0;
+                    track.pointsEdgeLeft.clear(); // 上角点丢失，使用上一帧的数据
+                    track.pointsEdgeRight.clear();
                     ringStep = RingStep::Inside;
                 }
                 else if(repaired)//右边线优化
@@ -500,7 +502,7 @@ public:
                         }
                     }
                 }
-                if(_corner.x && rowBreakLeftD == 0)
+                else if(rowBreakLeftD == 0 && _corner.x)
                     track.pointsEdgeLeft.resize(5);
             }
             else if(ringType == RingType::RingRight)
@@ -520,7 +522,7 @@ public:
                 }
                 else if(track.spurroad.size() == 1)
                 {
-                    if(track.spurroad[0].y < COLSIMAGE - 70)
+                    if(track.spurroad[0].y < COLSIMAGE - 70 && track.spurroad[0].x < ROWSIMAGE - 40)
                     {
                         //寻找岔路行对应边线下标
                         _corner = track.spurroad[0];
@@ -541,7 +543,7 @@ public:
                 {
                     for(int i = 0; i < track.spurroad.size(); i++)
                     {
-                        if(track.spurroad[i].x > _corner.x)
+                        if(track.spurroad[i].x > _corner.x && track.spurroad[i].y < COLSIMAGE - 70 && track.spurroad[i].x < COLSIMAGE / 2)
                         {
                             _corner = track.spurroad[i];
                         }
@@ -574,10 +576,10 @@ public:
                         if(rowBreakLeftD < 3)
                         {
                             float rowRate = _corner.x;
-                            if(rowRate < 60)
+                            if(rowRate < 50)
                                 rowRate = 0;
                             else
-                                rowRate -= 60;
+                                rowRate -= 50;
                             track.pointsEdgeLeft[rowBreakLeftD].y += (rowRate / ROWSIMAGE) * (_corner.y);
                         }
                         POINT startPoint = track.pointsEdgeLeft[rowBreakLeftD];
@@ -644,6 +646,8 @@ public:
                 else if(_corner.x == 0 && counterSpurroad > 2)
                 {
                     counterSpurroad = 0;
+                    track.pointsEdgeLeft.clear(); // 上角点丢失，使用上一帧的数据
+                    track.pointsEdgeRight.clear();
                     ringStep = RingStep::Inside;
                 }
                 else if(repaired)//左边线优化
@@ -665,8 +669,7 @@ public:
                         }
                     }
                 }
-
-                if(_corner.x && rowBreakRightD == 0)
+                else if(rowBreakRightD == 0 && _corner.x)
                     track.pointsEdgeRight.resize(5);
             }
         }
@@ -694,7 +697,7 @@ public:
                         break;
                     }
                 }
-                if(rowBreakRight)
+                if(rowBreakRight && counterSpurroad > 0)
                 {
                     // if(track.pointsEdgeRight[rowBreakRight].y > COLSIMAGE / 2 - 30)
                         counterSpurroad++; 
@@ -706,7 +709,12 @@ public:
                     track.pointsEdgeLeft.resize(rowBreakLeft);
                     track.pointsEdgeRight.resize(rowBreakLeft);
                 }
-                else if(!rowBreakRight && counterSpurroad > 2)
+                else if(rowBreakRight && counterSpurroad == 0)// 刚进入环岛就开始判断出环，错误，清空边线使用上一帧
+                {
+                    track.pointsEdgeLeft.clear();
+                    track.pointsEdgeRight.clear();
+                }
+                else if(!rowBreakRight && counterSpurroad > 3)
                 {
                     pointBreakD = track.pointsEdgeRight[0];
                     pointBreakU = track.pointsEdgeLeft[rowBreakLeft];
@@ -723,6 +731,9 @@ public:
                 }
                 else
                 {
+                    if(counterSpurroad == 0) // 判断正式进入环岛，此时开始允许判断出环
+                        counterSpurroad++;
+
                     if(track.pointsEdgeLeft.size() < 100 && track.pointsEdgeRight.size() < 100)
                     {
                         track.pointsEdgeLeft = pointsEdgeLeftLast;
@@ -765,7 +776,7 @@ public:
                         break;
                     }
                 }
-                if(rowBreakLeft)
+                if(rowBreakLeft && counterSpurroad > 0)
                 {
                     // if(track.pointsEdgeLeft[rowBreakLeft].y < COLSIMAGE / 2 + 30)
                         counterSpurroad++;
@@ -776,6 +787,11 @@ public:
                     line(track.pointsEdgeLeft, rowBreakLeft, pointBreakU);
                     track.pointsEdgeLeft.resize(rowBreakRight);
                     track.pointsEdgeRight.resize(rowBreakRight);
+                }
+                else if(rowBreakLeft && counterSpurroad == 0)// 刚进入环岛就开始判断出环，错误，清空边线使用上一帧
+                {
+                    track.pointsEdgeLeft.clear();
+                    track.pointsEdgeRight.clear();
                 }
                 else if(!rowBreakLeft && counterSpurroad > 2)
                 {
@@ -794,6 +810,9 @@ public:
                 }
                 else
                 {
+                    if(counterSpurroad == 0) // 判断正式进入环岛，此时开始允许判断出环
+                        counterSpurroad++;
+
                     if(track.pointsEdgeLeft.size() < 100 && track.pointsEdgeRight.size() < 100)
                     {
                         track.pointsEdgeLeft = pointsEdgeLeftLast;
@@ -993,6 +1012,14 @@ public:
                 FONT_HERSHEY_TRIPLEX, 0.3, Scalar(0, 0, 255), 1);
         putText(Image, to_string(track.validRowsLeft) + " " + to_string(track.stdevLeft), Point(20, ROWSIMAGE - 50),
                 FONT_HERSHEY_TRIPLEX, 0.3, Scalar(0, 0, 255), 1);
+    }
+
+    float get_speed(float motionSpeed)
+    {
+        if(ringStep == RingStep::Entering)
+            return (motionSpeed * 0.8f);
+        else
+            return motionSpeed;
     }
 
 private:
@@ -1196,3 +1223,4 @@ private:
     vector<POINT> pointsEdgeLeftLast;  // 记录前一场左边缘点集
     vector<POINT> pointsEdgeRightLast; // 记录前一场右边缘点集
 };
+ 

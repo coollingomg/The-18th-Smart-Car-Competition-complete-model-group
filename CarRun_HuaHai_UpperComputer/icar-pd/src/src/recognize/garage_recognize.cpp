@@ -965,7 +965,7 @@ public:
                     flag_garage = flag_garage_e::GARAGE_OUT_RIGHT;
                 }
                 count_to_CarNotInGarage = 0;
-                speed_ku = params.speed_out;
+                // speed_ku = params.speed_out;
                 if_garage = true;
             }
             // 返回假，说明可能没有检测到8帧图像达到判断条件；或者车初始位置不在车库中
@@ -1237,6 +1237,11 @@ public:
      */
     void garageExitRecognition(TrackRecognition &track)
     {
+        // 设置出库速度
+        speed_ku += 0.05f;
+        if(speed_ku >= params.speed_out)
+            speed_ku = params.speed_out;
+        
         // 用于dubug绘图的三个点，清零
         _pointRU = POINT(0, 0);
         _pointLU = POINT(0, 0);
@@ -1386,7 +1391,7 @@ public:
             //     }
 
             // 出库补线终点
-            endPoint = POINT(50, 1);
+            endPoint = POINT(10, 40);
             // 补线起点和终点正确性校验，判断起点和中点的位置关系是否正确
             if (startPoint.x > endPoint.x && startPoint.y > endPoint.y)
             {
@@ -1546,7 +1551,7 @@ public:
             //     }
 
             // 出库补线终点
-            endPoint = POINT(50, 319);
+            endPoint = POINT(10, 280);
             // 补线起点和终点正确性校验，判断起点和中点的位置关系是否正确
             if (startPoint.x > endPoint.x && startPoint.y < endPoint.y)
             {

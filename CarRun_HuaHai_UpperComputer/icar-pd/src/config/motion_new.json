@@ -1,32 +1,41 @@
 {
-    "speedLow": 2.0,
-    "speedHigh": 2.55,
-    "speedAI": 1.6,
-    "speedCorners": 1.5,
+    "speedLow": 1.7,
+    "speedHigh": 2.1,
+    "speedAI": 1.2,
+    "speedRing": 1.7,
     "speedcoiled": 1.4,
 
     "speed_and_angle_k1": 0.04,
     "speed_and_angle_k2": 3.8,
 
-    "runP1": 1.36,
-    "runP2": 0.0286,
-    "runP3": 0.0000328,
+    "runP1": 2.95,
+    "runP2": 0.008,
+    "runP3": 0.00000,
     "turnP": 3.5,
-    "turnD": 6.4,
+    "turnD": 8.0,
 
-    "Kp": 10000,
-    "Ki": 200,
-    "Kd": 1.2,
-    "Kv": 0,
+    "point1_x": 25,
+    "point1_y": 1550,
+    "point2_x": 56,
+    "point2_y": 1665,
+    "point3_x": 120,
+    "point3_y": 1901,
 
-    "Angle_Kp": 3.7,
+    "Kp_speed": 12000,
+    "Ki_speed": 250,
+    "Kd_speed": 0.0,
+    "Kp_current": 750,
+    "Ki_current": 1500,
+    "Kd_current": 0,
+
+    "Angle_Kp": 3.9,
     "Angle_Ki": 0.0,
     "dynamic_Mid_low": 145,
     "dynamic_Mid_high": 175,
     "Angle_target": 0.45,
 
     "K_K_limit": 0.2,
-    "K_foreword": 0.7,
+    "K_foreword": 0.0,
 
     "Control_Mid": 160,
     "Control_Down_set": 15,
@@ -36,7 +45,7 @@
     "ki_down_out_max": 2.0,
     "Kp_dowm": 0.0,
     "Ki_down": 0.0,
-    "Line_compensation_coefficient": 0.12,
+    "Line_compensation_coefficient": 0.15,
 
     "rowCutUp": 40,
     "rowCutBottom": 10,
@@ -53,13 +62,14 @@
     "SlowzoneEnable": true,
     "DepotEnable": true,
     "FarmlandEnable": true,
+    "GranaryEnable": true,
     "pathModel": "../res/model/yolov3_mobilenet_v1_0714",
     "record": [
         {
             "#speedLow": "智能车最低速",
             "#speedHigh": "智能车最高速",
             "#speedAI": "AI识别速度",
-            "#speedCorners":"贴弯速度",
+            "#speedRing":"环岛速度",
             "#speedcoiled": "连续弯道速度",
 
             "#speed_and_angle_k1": "速度方向耦合方程一次项",
@@ -71,20 +81,29 @@
             "#turnP": "一阶比例系数：转弯控制量",
             "#turnD": "一阶微分系数：转弯控制量",
 
-            "#Kp": "Kp",
-            "#Ki": "Ki",
-            "#Kd": "Kd",
-            "#Kv": "kv",
-
+            "#point1_x": "分段点1的x坐标",
+            "#point1_y": "分段点1的y坐标",
+            "#point2_x": "分段点2的x坐标",
+            "#point2_y": "分段点2的y坐标",
+            "#point3_x": "分段点3的x坐标",
+            "#point3_y": "分段点3的y坐标",
+        
+            "#Kp_speed": "速度环pid参数kp",
+            "#Ki_speed": "速度环pid参数ki",
+            "#Kd_speed": "速度环pid参数kd",
+            "#Kp_current": "电流环pid参数kp",
+            "#Ki_current": "电流环pid参数ki",
+            "#Kd_current": "电流环pid参数kd",
+        
             "#Angle_Kp": "角偏控制比例系数",
             "#Angle_Ki": "角偏控制积分系数",
             "#dynamic_Mid_low": "动态中线最小值",
             "#dynamic_Mid_high": "动态中线最大值",
             "#Angle_target": "角偏目标值范围",
 
-            "#K_K_limit": "前馈转弯控制系数死区",           
+            "#K_K_limit": "前馈转弯控制系数死区",
             "#K_foreword": "大转弯控制系数",
-            
+
             "#Control_Mid": "控制中线",
             "#Control_Down_set": "图像近处点界限",
             "#Control_Up_set": "图像远处点界限",
@@ -111,6 +130,7 @@
             "#SlowzoneEnable": "慢行区检测使能",
             "#DepotEnable": "修车厂使能",
             "#FarmlandEnable": "农田区域检测",
+            "#GranaryEnable": "粮仓区域检测",
             "#pathModel": "模型文件路径"
         }
     ]

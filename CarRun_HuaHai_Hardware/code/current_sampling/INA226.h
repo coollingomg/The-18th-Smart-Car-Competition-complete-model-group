@@ -33,10 +33,6 @@ void    INA226_Init                  (void);
 void    INA226_Timer                 (void);
 int16   INA226_Read2Byte             (uint8 reg_addr);
 uint8   INA226_Write2Byte            (uint8 reg_addr, uint16 reg_data);
-
-//---New Added Start---
-
-//---New Added End---
 //==================================================INA226 »ù´¡º¯Êý==================================================
 
 #endif

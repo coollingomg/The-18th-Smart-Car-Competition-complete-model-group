@@ -115,6 +115,12 @@ set(ICAR_PROJECT_SOURCES ${PROJECT_SOURCE_DIR}/tools/cone_detection.cpp)
 add_executable(${ICAR_PROJECT_NAME} ${ICAR_PROJECT_SOURCES})
 target_link_libraries(${ICAR_PROJECT_NAME}  ${OpenCV_LIBS})
 
+# hsv色块识别
+set(BLOCKS_PROJECT_NAME "hsv_blocks")
+set(BLOCKs_PROJECT_SOURCES ${PROJECT_SOURCE_DIR}/tools/hsv_blocks.cpp)
+add_executable(${BLOCKS_PROJECT_NAME} ${BLOCKs_PROJECT_SOURCES})
+target_link_libraries(${BLOCKS_PROJECT_NAME}  ${OpenCV_LIBS})
+
 #---------------------------------------------------------------------
 #               [ bin ] ==> [ main ]
 #---------------------------------------------------------------------

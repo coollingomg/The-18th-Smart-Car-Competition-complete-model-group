@@ -306,19 +306,22 @@ public:
         else if (controlCenter < 0)
             controlCenter = 0;
 
-        // 控制率计算
-        if (centerEdge.size() > 20)
-        {
-            vector<POINT> centerV;
-            int filt = centerEdge.size() / 5;
-            for (int i = filt; i < centerEdge.size() - filt; i++) // 过滤中心点集前后1/5的诱导性
-            {
-                centerV.push_back(centerEdge[i]);
-            }
-            sigmaCenter = sigma(centerV);
-        }
-        else
-            sigmaCenter = 1000;
+        // // 控制率计算
+        // if (centerEdge.size() > 20)
+        // {
+        //     vector<POINT> centerV;
+        //     int filt = centerEdge.size() / 5;
+        //     for (int i = filt; i < centerEdge.size() - filt; i++) // 过滤中心点集前后1/5的诱导性
+        //     {
+        //         centerV.push_back(centerEdge[i]);
+        //     }
+        //     sigmaCenter = sigma(centerV);
+        // }
+        // else
+        //     sigmaCenter = 1000;
+
+        // 计算拟合中心线的斜率
+        sigmaCenter = track.stdevEdgeCal(centerEdge, 4);
     }
 
     /**

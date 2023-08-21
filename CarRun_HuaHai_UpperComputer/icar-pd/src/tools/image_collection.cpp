@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
         char key = waitKey(10);
         if(key == 's')
         {
-            static int counter = 5000;
+            static int counter = 5500;
             counter++;
             // string img_path = "/mnt/myUSB/pic/";
             string img_path = "../res/test/";

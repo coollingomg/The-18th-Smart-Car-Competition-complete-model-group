@@ -47,7 +47,7 @@ public:
 	Mat imageBinaryzation(Mat &frame, bool blue = true)
 	{
 		Mat imageGray, imageBinary;
-		Mat kernel = getStructuringElement(MORPH_RECT, Size(5, 5));//创建结构元
+		Mat kernel = getStructuringElement(MORPH_RECT, Size(3, 3));//创建结构元
 
 		if(blue)
 		{
