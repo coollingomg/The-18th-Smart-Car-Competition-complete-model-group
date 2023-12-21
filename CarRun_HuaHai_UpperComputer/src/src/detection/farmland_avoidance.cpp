@@ -251,7 +251,7 @@ public:
                             double distance = cv::norm(currentPoint - otherPoint);
                             double x_dist, y_dist, distThreshold;
                             x_dist = std::max(currentPoint.y, otherPoint.y) * 0.6;
-                            y_dist = std::abs(currentPoint.x - otherPoint.x) * (std::max(std::max(currentPoint.y, otherPoint.y), 80) / ROWSIMAGE);
+                            y_dist = std::abs(currentPoint.x - otherPoint.x) * (std::max(std::max(currentPoint.y, otherPoint.y), 100) / ROWSIMAGE);
                             distThreshold = x_dist + y_dist;
                             if(distThreshold < 50)
                                 distThreshold = 50;

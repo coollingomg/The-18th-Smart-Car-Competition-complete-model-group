@@ -41,7 +41,7 @@ int main()
         cout << "speed\tservo" << endl;
         cin >> speed >> servo;
         stopWatch.tic();
-		serialInterface.set_control(speed, servo);
+		serialInterface.set_control(-speed, servo);
         // cout << stopWatch.toc << endl;
     }
 }

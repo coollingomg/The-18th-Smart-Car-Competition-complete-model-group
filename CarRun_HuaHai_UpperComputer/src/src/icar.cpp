@@ -184,7 +184,8 @@ int main(int argc, char *argv[])
         //     AI_enable = true;
         // else if (roadType == 1)
         //     AI_enable = false;
-        if(roadType == RoadType::GranaryHandle && granaryDetection.granaryType == 0)
+        if((roadType == RoadType::GranaryHandle && granaryDetection.granaryType == 0)
+            || (roadType == RoadType::DepotHandle && depotDetection.depotType == 0))
             detection.Startdetect = true;
         else if (roadType && roadType != RoadType::CrossHandle)
             detection.Startdetect = false;

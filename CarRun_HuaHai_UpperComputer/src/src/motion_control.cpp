@@ -316,7 +316,7 @@ public:
         // if(abs(CenterLine_k) > 1.5 && abs(Slope_previewPoint) > 2.6)
         //     speed = params.speedHigh - (params.speedHigh - params.speedLow) * atan(min(abs(CenterLine_k), 2.0)) - x_offset / 200;
         // else
-        //     speed = params.speedHigh - (params.speedHigh - params.speedLow) * atan(min(abs(CenterLine_k), 2.0)) - params.speedHigh * 0.15 * atan(min(abs(Slope_previewPoint), 4.0)) - x_offset / 200;
+            speed = params.speedHigh - (params.speedHigh - params.speedLow) * atan(min(abs(CenterLine_k), 3.0)) - params.speedHigh * 0.15 * atan(min(abs(Slope_previewPoint), 4.0)) - x_offset / 200;
 
         if(control.sigmaCenter > 100)
             speed -= control.sigmaCenter / 1000;

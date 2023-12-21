@@ -12,6 +12,17 @@
 using namespace std;
 using namespace cv;
 
+int m_exp = 20;
+float exposure = (float)m_exp / 10000;
+VideoCapture capture("/dev/video0");
+
+void onTrackbar(int, void*)
+{
+    // 从滑块更新阈值参数
+    exposure = (float)m_exp / 10000;
+    capture.set(cv::CAP_PROP_EXPOSURE, exposure);
+}
+
 int main(int argc, char const *argv[])
 {
 	// PPNC初始化
@@ -20,15 +31,20 @@ int main(int argc, char const *argv[])
 		return 1;
 
 	// 摄像头初始化
-	std::string indexCapture = "/dev/video0";
-	VideoCapture capture(indexCapture);
 	if (!capture.isOpened())
 	{
 		std::cout << "can not open video device " << std::endl;
 		return 1;
 	}
+	capture.set(cv::CAP_PROP_FOURCC, cv::VideoWriter::fourcc('M', 'J', 'P', 'G'));
+	capture.set(cv::CAP_PROP_FPS, 90);
 	capture.set(cv::CAP_PROP_FRAME_WIDTH, COLSIMAGE);
 	capture.set(cv::CAP_PROP_FRAME_HEIGHT, ROWSIMAGE);
+	capture.set(cv::CAP_PROP_ZOOM, 12);
+	capture.set(cv::CAP_PROP_EXPOSURE, exposure);       //曝光时间
+
+    cv::namedWindow("Result");
+    cv::createTrackbar("Exposure: ", "Result", &m_exp, 100, onTrackbar);
 
 	while (1)
 	{
@@ -56,8 +72,19 @@ int main(int argc, char const *argv[])
 		Mat imageAi = frame.clone();
 		predict.drawBox(imageAi);
 
-		imshow("AI", imageAi);
-		waitKey(5);
+		imshow("Result", imageAi);
+		if(waitKey(5) == 13)
+		{
+			double rate = capture.get(CAP_PROP_FPS);
+			double width = capture.get(CAP_PROP_FRAME_WIDTH);
+			double height = capture.get(CAP_PROP_FRAME_HEIGHT);
+			double exposure = capture.get(CAP_PROP_EXPOSURE);
+			std::cout << "Camera Param: frame rate = " << rate << " width = " << width
+				<< " height = " << height << " exposure = " << exposure << " ms" << std::endl;
+			break;
+		}
+
+		cv::setTrackbarPos("Exposure: ", "Result", m_exp);
 	}
 	return 0;
 }

@@ -2,7 +2,7 @@
     "BridgeCheck": 2,
     "rowCheck": 40,
     "SpeedUp": 1.5,
-    "ExitFrameCnt": 70,
+    "ExitFrameCnt": 100,
     "record": [
         {
             "#BridgeCheck": "桥梁确认帧数",

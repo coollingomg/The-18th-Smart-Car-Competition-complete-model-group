@@ -66,6 +66,7 @@ public:
         DepotLeft,     // 左维修区
         DepotRight     // 右维修区
     };
+	DepotType depotType = DepotType::None;
 
 
 	/**
@@ -123,10 +124,10 @@ public:
 				counterSession++;
 				if (counterRec > params.DepotCheck && counterSession < params.DepotCheck + 3)
 				{
-					if(params.DepotDir == 0)
-						depotType = DepotType::DepotLeft;
-					else if(params.DepotDir == 1)
-						depotType = DepotType::DepotRight;
+					// if(params.DepotDir == 0)
+					// 	depotType = DepotType::DepotLeft;
+					// else if(params.DepotDir == 1)
+					// 	depotType = DepotType::DepotRight;
 					depotStep = DepotStep::DepotEnable; // 维修厂使能
 					counterRec = 0;
 					counterSession = 0;
@@ -141,15 +142,39 @@ public:
 		}
 		case DepotStep::DepotEnable: //[02] 维修厂使能
 		{
+			POINT tractor(0, 0);
 			for (int i = 0; i < predict.size(); i++)
 			{
 				if (predict[i].label == LABEL_TRACTOR && predict[i].y + predict[i].height / 2 < ROWSIMAGE / 2) // 拖拉机标志检测
 				{
-					_slowdown = false;
+					tractor = POINT(predict[i].y + predict[i].height / 2, predict[i].x + predict[i].width / 2);
 					break;
 				}
-				else
-					_slowdown = true;
+			}
+
+			if(tractor.x == 0)
+			{
+				counterExit++;
+				if(counterRec)
+					counterSession++;
+			}
+			else if(tractor.x > params.ServoRow + ROWSIMAGE / 6)
+				counterRec++;
+			else 
+			{
+				counterSession = 0;
+				counterExit = 0;
+			}
+
+			if(counterSession > 1 || counterExit > 4)
+			{
+				counterRec = 0;
+				counterSession = 0;
+				counterExit = 0;
+				if(params.DepotDir == 0)
+					depotType = DepotType::DepotLeft;
+				else if(params.DepotDir == 1)
+					depotType = DepotType::DepotRight;
 			}
 			break;
 		}
@@ -181,6 +206,10 @@ public:
 		{
 		case DepotStep::DepotEnable: //[02] 维修厂使能
 		{
+
+			if(depotType == DepotType::None)
+				return true;
+
 			counterExit++;
 			if (counterExit > 100) {
 				reset();
@@ -986,7 +1015,6 @@ private:
 	
 private:
 	DepotStep depotStep = DepotStep::DepotNone;
-	DepotType depotType = DepotType::None;
 	Params params;                   // 读取控制参数
 	
 	double _distance = 0;

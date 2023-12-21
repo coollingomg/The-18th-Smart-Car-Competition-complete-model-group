@@ -1,13 +1,11 @@
-# 智能车完全模型组 - 源
----
-## 文件结构
-- .metadata 为英飞凌IDE编译生成的文件，**勿动**
-- CarRun_HuaHai_Hardware 为下位机程序源代码
-- CarRun_HuaHai_Hardware_RTT 为移植了rtt操作系统的下位机程序源代码（放弃移植）
-- CarRun_HuaHai_UpperComputer 为上位机相关内容
----
-## 智能车工作源码（包含上下位机）
----
+# <center>第十八届全国大学生智能汽车竞赛---完全模型组 - 源
+> 文件结构
+>- .metadata 为英飞凌IDE编译生成的文件，**勿动**
+>- CarRun_HuaHai_Hardware 为下位机程序源代码
+>- CarRun_HuaHai_Hardware_RTT 为移植了rtt操作系统的下位机程序源代码（放弃移植）
+>- CarRun_HuaHai_UpperComputer 为上位机程序源码
+
+## 智能车工作源码介绍
 ### 使用的平台
 - 芯片使用的为英飞凌的tc264芯片
 - IDE使用的为AURIX Development Studio
@@ -26,9 +24,12 @@
     - [x] 8. 电池电压ADC采样，并蜂鸣器报警
 ---
 
-版本改动：
+<center> 
+版本改动
+</center>
 
-...
+V1.0
+1. ...
 
 V1.1    
 1. 电流计基本测试完成，可以得到较为符合的电机电流数据，对于电流计采样的电机电流数据使用了一阶低通滤波（采用的库函数进行滤波）。 

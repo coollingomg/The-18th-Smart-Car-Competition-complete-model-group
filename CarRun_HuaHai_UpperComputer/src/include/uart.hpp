@@ -174,103 +174,41 @@ public:
   }
 
   /**
-   * @brief 智能车速度环+电流环pid设置
+   * @brief 云台自瞄
    * @param 略
    */
-  void PID_init(float speed_loop_kp, float speed_loop_ki, float speed_loop_kd , float current_loop_kp, float current_loop_ki, float current_loop_kd)
+  void current_PID_init(float yaw, float pitch, float L)
   {
     if(isOpen)
     {
-      // 定义4字节的联合体
-      Bint32_Union byte4_Union;
-
-      std::vector<unsigned char> sendBuff(32);
-      unsigned char check = 0;
-
-      sendBuff[0] = 0x42;
-      sendBuff[1] = 0x10;
-      sendBuff[2] = 32;
-
-      // speed_loop_pid-kp
-      byte4_Union.Float = speed_loop_kp;
-      for(int i = 0;i < 4;i++)
-        sendBuff[3+i] = byte4_Union.U8_Buff[i];
-
-      // speed_loop_pid-ki
-      byte4_Union.Float = speed_loop_ki;
-      for(int i = 0;i < 4;i++)
-        sendBuff[7+i] = byte4_Union.U8_Buff[i];
-
-      // speed_loop_pid-kd
-      byte4_Union.Float = speed_loop_ki;
-      for(int i = 0;i < 4;i++)
-        sendBuff[11+i] = byte4_Union.U8_Buff[i];
-
-      // current_loop_pid-kp
-      byte4_Union.Float = current_loop_kp;
-      for(int i = 0;i < 4;i++)
-        sendBuff[15+i] = byte4_Union.U8_Buff[i];
-
-      // current_loop_pid-ki
-      byte4_Union.Float = current_loop_ki;
-      for(int i = 0;i < 4;i++)
-        sendBuff[19+i] = byte4_Union.U8_Buff[i];
-
-      // current_loop_pid-kd
-      byte4_Union.Float = current_loop_kd;
-      for(int i = 0;i < 4;i++)
-        sendBuff[23+i] = byte4_Union.U8_Buff[i];
-
-      for (int i = 0; i < 31; i++)
-      {
-        check += sendBuff[i];
-      }
-      sendBuff[31] = check;
-
-      send(sendBuff);        
-    }
-    else
-    {
-      std::cout << "Error: Uart Open failed!!!!" << std::endl;
-    }
-  }
-
-  /**
-   * @brief 智能车电流环pid设置
-   * @param 略
-   */
-  void current_PID_init(float Kp, float Ki, float Kd)
-  {
-    if(isOpen)
-    {
-      Bint32_Union Kp_Union;
-      Bint32_Union Ki_Union;
-      Bint32_Union Kd_Union;
+      Bint32_Union yaw_Union;
+      Bint32_Union pitch_Union;
+      Bint32_Union L_Union;
       std::vector<unsigned char> sendBuff(16);
       unsigned char check = 0;
 
-      Kp_Union.Float = Kp;
-      Ki_Union.Float = Ki;
-      Kd_Union.Float = Kd;
+      yaw_Union.Float = Kp;
+      pitch_Union.Float = Ki;
+      L_Union.Float = Kd;
 
-      sendBuff[0] = 0x42;
-      sendBuff[1] = 0x12;
-      sendBuff[2] = 16;
+      sendBuff[0] = 0x42; // 帧头
+      sendBuff[1] = 0x12; // 地址帧
+      sendBuff[2] = 16;   // 帧长
 
-      sendBuff[3] = Kp_Union.U8_Buff[0];
-      sendBuff[4] = Kp_Union.U8_Buff[1];
-      sendBuff[5] = Kp_Union.U8_Buff[2];
-      sendBuff[6] = Kp_Union.U8_Buff[3];
+      sendBuff[3] = yaw_Union.U8_Buff[0];
+      sendBuff[4] = yaw_Union.U8_Buff[1];
+      sendBuff[5] = yaw_Union.U8_Buff[2];
+      sendBuff[6] = yaw_Union.U8_Buff[3];
 
-      sendBuff[7] = Ki_Union.U8_Buff[0];
-      sendBuff[8] = Ki_Union.U8_Buff[1];
-      sendBuff[9] = Ki_Union.U8_Buff[2];
-      sendBuff[10] = Ki_Union.U8_Buff[3];
+      sendBuff[7] = pitch_Union.U8_Buff[0];
+      sendBuff[8] = pitch_Union.U8_Buff[1];
+      sendBuff[9] = pitch_Union.U8_Buff[2];
+      sendBuff[10] = pitch_Union.U8_Buff[3];
 
-      sendBuff[11] = Kd_Union.U8_Buff[0];
-      sendBuff[12] = Kd_Union.U8_Buff[1];
-      sendBuff[13] = Kd_Union.U8_Buff[2];
-      sendBuff[14] = Kd_Union.U8_Buff[3];
+      sendBuff[11] = L_Union.U8_Buff[0];
+      sendBuff[12] = L_Union.U8_Buff[1];
+      sendBuff[13] = L_Union.U8_Buff[2];
+      sendBuff[14] = L_Union.U8_Buff[3];
 
       for (int i = 0; i < 15; i++)
       {
@@ -286,60 +224,6 @@ public:
     }
   }
 
-  /**
-   * @brief 智能车速度与方向控制
-   *
-   * @param speed 速度单位：m/s
-   * @param servoPwm 舵机方向：500~2500/PWM
-   */
-  void carControl(float speed, uint16_t servoPwm)
-  {
-    if (isOpen)
-    {
-      Bint32_Union bint32_Union;
-      Bint16_Union bint16_Union;
-      std::vector<unsigned char> sendBuff(12);
-      unsigned char check = 0;
-
-      bint32_Union.Float = speed;
-
-      if (servoPwm > PWMSERVOMAX)
-        servoPwm = PWMSERVOMAX;
-      else if (servoPwm < PWMSERVOMIN)
-        servoPwm = PWMSERVOMIN;
-      bint16_Union.U16 = servoPwm;
-
-      sendBuff[0] = 0x42; // 帧头
-      sendBuff[1] = 0x01; // 地址
-      sendBuff[2] = 10;   // 帧长
-
-      sendBuff[3] = bint32_Union.U8_Buff[0]; // 速度
-      sendBuff[4] = bint32_Union.U8_Buff[1];
-      sendBuff[5] = bint32_Union.U8_Buff[2];
-      sendBuff[6] = bint32_Union.U8_Buff[3];
-
-      sendBuff[7] = bint16_Union.U8_Buff[0]; // 方向
-      sendBuff[8] = bint16_Union.U8_Buff[1];
-
-      for (size_t i = 0; i < 9; i++)
-      {
-        check += sendBuff[i];
-      }
-      sendBuff[9] = check;
-      send(sendBuff);
-
-      // // 循环发送数据
-      // for (size_t i = 0; i < 10; i++)
-      // {
-      //   send(sendBuff[i]);
-      // }
-      
-    }
-    else
-    {
-      std::cout << "Error: Uart Open failed!!!!" << std::endl;
-    }
-  }
 
   /**
    * @brief 蜂鸣器音效
@@ -370,12 +254,6 @@ public:
       sendBuff[4] = check;
 
       send(sendBuff);
-
-      // // 循环发送数据
-      // for (size_t i = 0; i < 7; i++)
-      // {
-      //   send(sendBuff[i]);
-      // }
     }
     else
     {
