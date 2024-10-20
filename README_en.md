@@ -1,13 +1,13 @@
 <div align=center>
 	<img src="Readme_img/Body_photo.png"/>
 	<h1>The complete model group of the 18th National College Students Intelligent Car Competition -- Huahai Team of Wuhan University of Technology</h1>
-	<p>
-		<a href="https://github.com/coollingomg/The-18th-Smart-Car-Competition-complete-model-group">
-			<img src="https://img.shields.io/github/stars/coollingomg/The-18th-Smart-Car-Competition-complete-model-group"/>
-		</a>
-		<img src="https://img.shields.io/github/forks/coollingomg/The-18th-Smart-Car-Competition-complete-model-group"/>
-		<img src="https://img.shields.io/badge/License-GPL3.0-red"/>
-	</p>
+    <p>
+        <a href="https://github.com/coollingomg/The-18th-Smart-Car-Competition-complete-model-group">
+            <img src="https://img.shields.io/github/stars/coollingomg/The-18th-Smart-Car-Competition-complete-model-group"/>
+        	<img src="https://img.shields.io/github/forks/coollingomg/The-18th-Smart-Car-Competition-complete-model-group"/>
+        </a>
+        <img src="https://img.shields.io/badge/License-GPL3.0-red"/>
+    </p>
 	<p>
 		<b><a href="README.md">简体中文</a> | English</b>
 	</p>

@@ -4,8 +4,8 @@
     <p>
         <a href="https://github.com/coollingomg/The-18th-Smart-Car-Competition-complete-model-group">
             <img src="https://img.shields.io/github/stars/coollingomg/The-18th-Smart-Car-Competition-complete-model-group"/>
+            <img src="https://img.shields.io/github/forks/coollingomg/The-18th-Smart-Car-Competition-complete-model-group"/>
         </a>
-        <img src="https://img.shields.io/github/forks/coollingomg/The-18th-Smart-Car-Competition-complete-model-group"/>
         <img src="https://img.shields.io/badge/License-GPL3.0-red"/>
     </p>
     <p>
