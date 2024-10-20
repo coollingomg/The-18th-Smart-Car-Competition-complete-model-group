@@ -1,47 +1,52 @@
-# <center>第十八届全国大学生智能汽车竞赛---完全模型组 - 源
-> 文件结构
->- .metadata 为英飞凌IDE编译生成的文件，**勿动**
->- CarRun_HuaHai_Hardware 为下位机程序源代码
->- CarRun_HuaHai_Hardware_RTT 为移植了rtt操作系统的下位机程序源代码（放弃移植）
->- CarRun_HuaHai_UpperComputer 为上位机程序源码
+<div align=center>
+    <img src="Readme_img/Body_photo.png"/>
+    <h1>第十八届全国大学生智能汽车竞赛完全模型组——武汉理工大学花海队</h1>
+    <p>
+        <a href="https://github.com/coollingomg/The-18th-Smart-Car-Competition-complete-model-group">
+            <img src="https://img.shields.io/github/stars/coollingomg/The-18th-Smart-Car-Competition-complete-model-group"/>
+        </a>
+        <img src="https://img.shields.io/github/forks/coollingomg/The-18th-Smart-Car-Competition-complete-model-group"/>
+        <img src="https://img.shields.io/badge/License-GPL3.0-red"/>
+    </p>
+    <p>
+        <b>简体中文 | <a href="README_en.md">English</b></a>
+    </p>
+</div>
 
-## 智能车工作源码介绍
-### 使用的平台
-- 芯片使用的为英飞凌的tc264芯片
-- IDE使用的为AURIX Development Studio
-- 使用了逐飞提供的开源库，以减轻开发难度
-- 百度edgeboard开发板，Linux系统开发上位机
----
-### 相关的内容
-- 全国大学生智能汽车竞赛完全模型组，底层控制代码功能：
-    - [x] 1. 电机的运动控制（速度环+电流环）
-    - [x] 2. 舵机的转向控制
-    - [x] 3. 串口蓝牙的数据接收和解码（无线串口数据监视，手机蓝牙数据交换控制）
-    - [x] 4. 上位机edgeboard的数据接收和解码，以实现小车的自动控制
-    - [x] 5. 相关数据的flash存储 -> 在调试完成后的相关数据记录，以便下一次的初始化
-    - [x] 6. 按键的数据读取，以进行发车及其他控制
-    - [x] 7. 陀螺仪的初始化，及解算
-    - [x] 8. 电池电压ADC采样，并蜂鸣器报警
----
+## 1. 成绩
+&emsp;&emsp;校赛（第二名） -> 西部赛区（第一名） -> 国赛（第十四名 - 全国一等奖）
+<table>
+    <tr>
+        <td ><center><img src="Readme_img/Provincial_certificate.jpg"width=600 >pic.1  省赛 </center></td>
+        <td ><center><img src="Readme_img/National_certificate.jpg" width=585  >pic.2  国赛</center></td>
+    </tr>
+</table>
 
-<center> 
-版本改动
-</center>
+## 2. 相关工作
+### 2.1 使用平台
+- MCU芯片：英飞凌的tc264芯片
+- IDE：AURIX Development Studio；使用了逐飞提供的英飞凌tc264开源库，以减轻开发难度
+- 边缘计算板：百度edgeboard开发板，Linux系统
 
-V1.0
-1. ...
+### 2.2 文件结构
+&emsp;&emsp;Code_TC264_CarDrive：下位机TC264代码工程<br>
+&emsp;&emsp;Code_Edgeboard：edgeboard代码工程（[队友edgeboard上位机的工作](https://github.com/p-xiexin/icar-pd)）
 
-V1.1    
-1. 电流计基本测试完成，可以得到较为符合的电机电流数据，对于电流计采样的电机电流数据使用了一阶低通滤波（采用的库函数进行滤波）。 
-2. 同时陀螺仪的姿态角解算还存在问题，yaw轴数据一直在大角度的漂移。（未解决）
+### 2.3 相关跑车视频
+&emsp;&emsp;[西部赛区比赛视频](https://www.bilibili.com/video/BV1c14y1R7UY/?spm_id_from=333.999.0.0&vd_source=9805319fbcc667bd39b66994068b0d17)<br>
+&emsp;&emsp;[断路区测试](https://www.bilibili.com/video/BV1Zp4y1V79A/?spm_id_from=333.999.0.0&vd_source=9805319fbcc667bd39b66994068b0d17)<br>
+&emsp;&emsp;[国赛前夕实验室测试](https://www.bilibili.com/video/BV1LF411y7X6/?spm_id_from=333.999.0.0&vd_source=9805319fbcc667bd39b66994068b0d17)<br>
+&emsp;&emsp;[第一视角](https://www.bilibili.com/video/BV1ep421R7LV/?spm_id_from=333.999.0.0&vd_source=9805319fbcc667bd39b66994068b0d17)<br>
+&emsp;&emsp;[智能车起步初期视频](https://www.bilibili.com/video/BV1DC41147Wu/?spm_id_from=333.999.0.0&vd_source=9805319fbcc667bd39b66994068b0d17)<br>
 
-V1.2    
-1. 代码结构优化：将实时性要求不高的功能放入cpu0中去完成，例如adc电压采样报警、没有用到的陀螺仪解算、无线串口数据发送等等；将实时性要求较高的功能放入cpu1中实现，把上位机的数据接受中断和解算放入cpu1中，以及定时器中断用于电机控制的放入cpu1中。（后续测试，将用于电机闭环控制的定时器中断放入cpu1中读取不到电流值，不知道原因，故又将定时器中断放回cpu0了） 
-2. 进行了电流环+速度环的代码编写和调试，pid参数来自于上位机发送，可以进行实时的调整而不需要重复的编译下载。（串级闭环调试失败，恢复到了之前的单环控制，将电流环的pid控制器注释了，重新调试只需要启用就可以）然后在输入设定目标速度的地方加入了一阶低通滤波器，存在些许的相位滞后，但是可以避免启动加速度过大对整车机械结构的伤害。
+## 3. 总结
+&emsp;&emsp;硬件有IMU，软件写了相关的姿态解算，但是没有加入方向环到整体的控制结构中，后续可以继续研究。<br>
+&emsp;&emsp;进行了电流环+速度环的代码编写和调试，pid参数来自于上位机发送，可以进行实时的调整而不需要重复的编译下载。（串级闭环调试失败，恢复到了之前的单环控制，将电流环的pid控制器注释了，重新调试只需要启用就可以）然后在输入设定目标速度的地方加入了一阶低通滤波器，存在些许的相位滞后，但是可以避免启动加速度过大对整车机械结构的伤害。<br>
+&emsp;&emsp;在该代码中，存在几个问题；首先，控制上连续s弯道不稳定，这个应该是算法上的问题，需要更换算法结构；由于比赛前，前桥出了问题，导致比赛时不得不降低速度，从而导致参数不太匹配，疯狂撞锥桶。不然我们预计最好成绩可以达到58s，拿到全国第二的成绩，但是这也说明我们的鲁棒性不太好，还有很大的提升空间。<br>
+&emsp;&emsp;对于这个组别的解决方案来说，个人认为如果想学习和深入，可以考虑对滚动时域的模型预测控制器进行尝试；或者使用强化学习进行端到端的控制，即输入端为图像，输出端为控制量电机和舵机.....（纯属个人想法，如果有兴趣想做的可以联系，带我也尝试一下，哈哈哈）<br>
+&emsp;&emsp;**最后，如果觉得我们的这些工作对您有用，可以点点star哦！**<br>
 
-V1.3    
-1. 国赛比完后的整体代码更新，最终取得了预赛第十，决赛第十四，国家一等奖的成绩
-2. 在该代码中，存在几个问题；首先，控制上连续s弯道不稳定，这个是算法上的问题，需要更换算法结构；其次，我们在决赛的时候存在第二圈大直道的时候识别维修区过早导致没进维修区从而罚时15s；最后，由于比赛前，前桥出了问题，导致比赛时不得不降低速度，从而导致参数不太匹配，疯狂撞锥桶。不然我们预计最好成绩可以达到58s，拿到全国第二的成绩，但是这也说明我们的鲁棒性不太好，还有很大的提升空间。希望后来人可以在我们的基础之上，发挥完全的实力，争取第一之位。
-
----
-
+## 4. 参考
+[1] 队友上位机工作：https://github.com/p-xiexin/icar-pd<br>
+[2] 第十七届完模，湖北工业大学蓝电队开源：https://gitee.com/xinnz/landian-yyds<br>
+[3] 北京赛曙科技有限公司/（2023年）智能汽车竞赛-完全模型组-学习资料：https://gitee.com/bjsstech/sasu-intelligentcar-kits
